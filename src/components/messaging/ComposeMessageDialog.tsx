@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,7 +13,8 @@ import { Send } from 'lucide-react';
 import { RecipientSearch } from './RecipientSearch';
 
 const messageFormSchema = z.object({
-  recipient_id: z.string().min(1, { message: "Veuillez sélectionner un destinataire." }),
+  recipient_ids: z.array(z.string()).min(1, { message: "Veuillez sélectionner au moins un destinataire." }),
+  cc_recipient_ids: z.array(z.string()).optional(),
   subject: z.string().min(1, { message: "Le sujet ne peut pas être vide." }),
   content: z.string().min(1, { message: "Le message ne peut pas être vide." }),
   priority: z.enum(['low', 'normal', 'high']),
@@ -42,7 +42,8 @@ export function ComposeMessageDialog({
   const form = useForm<MessageFormData>({
     resolver: zodResolver(messageFormSchema),
     defaultValues: {
-      recipient_id: '',
+      recipient_ids: [],
+      cc_recipient_ids: [],
       subject: '',
       content: '',
       priority: 'normal',
@@ -53,7 +54,8 @@ export function ComposeMessageDialog({
   useEffect(() => {
     if (initialData) {
       form.reset({
-        recipient_id: '',
+        recipient_ids: [],
+        cc_recipient_ids: [],
         subject: '',
         content: '',
         priority: 'normal',
@@ -68,7 +70,10 @@ export function ComposeMessageDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent 
+        className="max-w-2xl"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Nouveau Message</DialogTitle>
         </DialogHeader>
@@ -77,37 +82,56 @@ export function ComposeMessageDialog({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="recipient_id"
+                name="recipient_ids"
                 render={({ field }) => (
                   <RecipientSearch
                     value={field.value}
                     onChange={field.onChange}
                     currentUserId={currentUserId}
+                    label="Destinataires *"
+                    placeholder="Rechercher des destinataires..."
                   />
                 )}
               />
               <FormField
                 control={form.control}
-                name="priority"
+                name="cc_recipient_ids"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Priorité</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Définir la priorité" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="low">Faible</SelectItem>
-                        <SelectItem value="normal">Normal</SelectItem>
-                        <SelectItem value="high">Urgent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+                  <RecipientSearch
+                    value={field.value || []}
+                    onChange={field.onChange}
+                    currentUserId={currentUserId}
+                    label="Copie (CC)"
+                    placeholder="Ajouter des destinataires en copie"
+                  />
                 )}
               />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <FormField
+                  control={form.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Priorité</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Définir la priorité" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="low">Faible</SelectItem>
+                          <SelectItem value="normal">Normal</SelectItem>
+                          <SelectItem value="high">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
             <FormField
               control={form.control}

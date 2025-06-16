@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,14 @@ import { toast } from 'sonner';
 import { MessageList } from '@/components/messaging/MessageList';
 import { ComposeMessageDialog, MessageFormData } from '@/components/messaging/ComposeMessageDialog';
 import { MessageDetailDialog } from '@/components/messaging/MessageDetailDialog';
+import { v4 as uuidv4 } from 'uuid';
+
+interface Profile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+}
 
 interface Message {
   id: string;
@@ -28,6 +35,8 @@ interface Message {
     first_name: string;
     last_name: string;
   };
+  recipients?: Profile[];
+  conversation_id: string;
 }
 
 export function MessagingCenter() {
@@ -39,8 +48,9 @@ export function MessagingCenter() {
 
   // Fetch messages
   const { data: messages = [], isLoading } = useQuery({
-    queryKey: ['messages'],
+    queryKey: ['messages', user?.id],
     queryFn: async () => {
+        if (!user?.id) return [];
       const { data, error } = await supabase
         .from('messages')
         .select(`
@@ -48,11 +58,28 @@ export function MessagingCenter() {
           sender:profiles!messages_sender_id_fkey(first_name, last_name),
           recipient:profiles!messages_recipient_id_fkey(first_name, last_name)
         `)
-        .or(`sender_id.eq.${user?.id},recipient_id.eq.${user?.id}`)
+        .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as Message[];
+      
+      // Regrouper les messages par conversation_id
+      const conversations = new Map<string, Message>();
+      
+      (data as Message[]).forEach(message => {
+        const convId = message.conversation_id || message.id; // Fallback for old messages
+        
+        // Pour les messages envoyés par l'utilisateur courant, on ne veut qu'une seule entrée par conversation
+        if (message.sender_id === user.id) {
+          if (!conversations.has(convId)) {
+            conversations.set(convId, { ...message, conversation_id: convId });
+          }
+        } else { // Pour les messages reçus, chaque message est une entrée unique
+          conversations.set(message.id, { ...message, conversation_id: convId });
+        }
+      });
+      
+      return Array.from(conversations.values());
     },
     enabled: !!user?.id
   });
@@ -65,16 +92,30 @@ export function MessagingCenter() {
         throw new Error("User not authenticated");
       }
 
+      const { recipient_ids, cc_recipient_ids, subject, content, priority } = messageData;
+
+      const allRecipientIds = [...new Set([...recipient_ids, ...(cc_recipient_ids || [])])];
+      
+      if (allRecipientIds.length === 0) {
+        toast.error("Veuillez sélectionner au moins un destinataire.");
+        throw new Error("No recipients selected");
+      }
+      
+      const conversation_id = uuidv4();
+
+      const messagesToInsert = allRecipientIds.map(recipientId => ({
+        recipient_id: recipientId,
+        subject,
+        content,
+        priority,
+        sender_id: user.id,
+        read: false,
+        conversation_id,
+      }));
+
       const { data, error } = await supabase
         .from('messages')
-        .insert({
-          recipient_id: messageData.recipient_id,
-          subject: messageData.subject,
-          content: messageData.content,
-          priority: messageData.priority,
-          sender_id: user.id,
-          read: false,
-        });
+        .insert(messagesToInsert);
       
       if (error) throw error;
       return data;

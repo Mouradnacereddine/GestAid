@@ -1,27 +1,8 @@
-
 import React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquare } from 'lucide-react';
 import { MessageItem } from './MessageItem';
-
-interface Message {
-  id: string;
-  subject: string;
-  content: string;
-  sender_id: string;
-  recipient_id: string;
-  created_at: string;
-  read: boolean;
-  priority: 'low' | 'normal' | 'high';
-  sender?: {
-    first_name: string;
-    last_name: string;
-  };
-  recipient?: {
-    first_name: string;
-    last_name: string;
-  };
-}
+import { Message } from './MessageUtils';
 
 interface MessageListProps {
   messages: Message[];

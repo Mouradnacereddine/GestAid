@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
@@ -174,7 +173,10 @@ export default function Loans() {
               handleCloseDialog();
             }
           }}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+            <DialogContent 
+              className="max-w-4xl max-h-[90vh] overflow-y-auto p-0"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
               <LoanForm onClose={handleCloseDialog} loan={selectedLoan} />
             </DialogContent>
           </Dialog>

@@ -1,13 +1,10 @@
-
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Button } from '@/components/ui/button';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronsUpDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Check } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -23,21 +20,19 @@ interface RecipientSearchProps {
 }
 
 export function RecipientSearch({ value, onChange, currentUserId }: RecipientSearchProps) {
-  const [open, setOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchValue, setSearchValue] = useState('');
+  const [showResults, setShowResults] = useState(false);
 
-  console.log('🔍 Fetching profiles for messaging...');
-  
-  const { data: profiles = [], isLoading, error } = useQuery({
-    queryKey: ['profiles-search', searchTerm],
+  const { data: profiles = [], isLoading } = useQuery({
+    queryKey: ['profiles-search', searchValue],
     queryFn: async () => {
       let query = supabase
         .from('profiles')
         .select('id, first_name, last_name, email')
         .limit(20);
       
-      if (searchTerm) {
-        query = query.or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+      if (searchValue) {
+        query = query.or(`first_name.ilike.%${searchValue}%,last_name.ilike.%${searchValue}%,email.ilike.%${searchValue}%`);
       }
       
       const { data, error } = await query;
@@ -47,104 +42,118 @@ export function RecipientSearch({ value, onChange, currentUserId }: RecipientSea
         throw error;
       }
       
-      // Filter out current user
       const filtered = data?.filter(profile => {
         if (currentUserId && profile.id === currentUserId) {
-          console.log('❌ Excluding current user:', currentUserId);
           return false;
         }
         return true;
       }) || [];
       
-      console.log('✅ Profiles loaded:', filtered);
       return filtered;
     },
-    retry: 3,
-    retryDelay: 1000,
   });
 
-  console.log('🔄 RecipientSearch state:', {
-    profilesCount: profiles.length,
-    isLoading,
-    error: error?.message,
-    currentUserId
-  });
-
-  const selectedProfile = profiles.find((profile: Profile) => profile.id === value);
+  const selectedProfile = useMemo(() => 
+    profiles.find((profile: Profile) => profile.id === value),
+    [profiles, value]
+  );
 
   const getDisplayName = (profile: Profile) => {
     const name = [profile.first_name, profile.last_name].filter(Boolean).join(' ');
     return name || profile.email || 'Utilisateur sans nom';
   };
+  
+  const handleInputChange = (inputValue: string) => {
+    setSearchValue(inputValue);
+    setShowResults(true);
+    if (!inputValue.trim()) {
+      onChange('');
+    }
+  };
+
+  const handleSelect = (profileId: string) => {
+    onChange(profileId);
+    const selected = profiles.find(p => p.id === profileId);
+    if (selected) {
+      setSearchValue(getDisplayName(selected));
+    }
+    setShowResults(false);
+  };
+
+  const handleInputFocus = () => {
+    setShowResults(true);
+    if (selectedProfile) {
+      setSearchValue('');
+    }
+  };
+
+  const handleInputBlur = () => {
+    setTimeout(() => {
+      setShowResults(false);
+      if (selectedProfile) {
+        setSearchValue(getDisplayName(selectedProfile));
+      } else {
+        setSearchValue('');
+      }
+    }, 200);
+  };
+  
+  useEffect(() => {
+    if (selectedProfile && !showResults) {
+      setSearchValue(getDisplayName(selectedProfile));
+    }
+  }, [selectedProfile, showResults]);
 
   return (
     <FormItem>
       <FormLabel>Destinataire *</FormLabel>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <FormControl>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={open}
-              className="w-full justify-between text-left font-normal"
-            >
-              {selectedProfile ? (
-                <span className="flex flex-col items-start">
-                  <span>{getDisplayName(selectedProfile)}</span>
-                  {selectedProfile.email && selectedProfile.email !== getDisplayName(selectedProfile) && (
-                    <span className="text-xs text-gray-500">{selectedProfile.email}</span>
-                  )}
-                </span>
-              ) : (
-                <span className="text-muted-foreground">Sélectionner un destinataire...</span>
-              )}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </FormControl>
-        </PopoverTrigger>
-        <PopoverContent className="w-full p-0" align="start">
-          <Command>
-            <CommandInput 
-              placeholder="Rechercher un destinataire..." 
-              value={searchTerm}
-              onValueChange={setSearchTerm}
-            />
-            <CommandList>
-              <CommandEmpty>
-                {isLoading ? 'Recherche en cours...' : 'Aucun destinataire trouvé.'}
-              </CommandEmpty>
-              {profiles.length > 0 && (
-                <CommandGroup>
-                  {profiles.map((profile: Profile) => (
-                    <CommandItem
+      <div className="relative">
+        <FormControl>
+          <Input
+            value={searchValue}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
+            placeholder="Rechercher un destinataire..."
+            disabled={isLoading}
+            autoComplete="off"
+          />
+        </FormControl>
+        
+        {showResults && (
+          <Card className="absolute top-full left-0 right-0 mt-1 max-h-64 overflow-y-auto z-50 bg-background border shadow-lg">
+            {isLoading ? (
+              <div className="p-3 text-center text-muted-foreground">Recherche...</div>
+            ) : (
+              <div className="py-1">
+                {profiles.length === 0 ? (
+                  <div className="p-3 text-center text-muted-foreground">Aucun destinataire trouvé.</div>
+                ) : (
+                  profiles.map((profile) => (
+                    <div
                       key={profile.id}
-                      value={profile.id}
-                      onSelect={() => {
-                        onChange(profile.id);
-                        setOpen(false);
-                      }}
+                      className="px-3 py-2 cursor-pointer hover:bg-muted flex items-center gap-2"
+                      onMouseDown={() => handleSelect(profile.id)}
                     >
                       <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          value === profile.id ? "opacity-100" : "opacity-0"
-                        )}
+                        className={`h-4 w-4 ${
+                          value === profile.id ? 'opacity-100' : 'opacity-0'
+                        }`}
                       />
-                      <div className="flex flex-col flex-1">
-                        <span className="font-medium">{getDisplayName(profile)}</span>
+                      <div className="flex-1">
+                        <p className="font-medium">{getDisplayName(profile)}</p>
                         {profile.email && profile.email !== getDisplayName(profile) && (
-                          <span className="text-xs text-gray-500">{profile.email}</span>
+                          <span className="text-xs text-muted-foreground">{profile.email}</span>
                         )}
                       </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </Card>
+        )}
+      </div>
       <FormMessage />
     </FormItem>
   );

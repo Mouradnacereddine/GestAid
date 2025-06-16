@@ -23,17 +23,16 @@ export function MessageDetailDialog({ message, userId, onClose, onReply }: Messa
     queryKey: ['message-recipients', message?.conversation_id],
     queryFn: async () => {
       if (!message?.conversation_id) return [];
-      const { data, error } = await supabase
-        .from('messages')
-        .select('recipient:profiles!messages_recipient_id_fkey(id, first_name, last_name, email)')
-        .eq('conversation_id', message.conversation_id);
-      if (error) throw error;
-      // Pour éviter les doublons et s'assurer que le profil est bien là
-      const uniqueRecipients = data
-        .map(d => d.recipient)
-        .filter((r): r is Profile => r !== null)
-        .filter((r, index, self) => self.findIndex(p => p.id === r.id) === index);
-      return uniqueRecipients;
+      
+      const { data, error } = await supabase.rpc('get_conversation_recipients', {
+        p_conversation_id: message.conversation_id
+      });
+
+      if (error) {
+        console.error("Erreur lors de la récupération des destinataires:", error);
+        throw error;
+      }
+      return data as Profile[];
     },
     enabled: !!message?.conversation_id,
   });

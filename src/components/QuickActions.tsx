@@ -9,21 +9,18 @@ export function QuickActions() {
   const actions = [
     {
       title: "Nouvel Article",
-      description: "Ajouter un article au stock",
       icon: Package,
       color: "bg-humanitarian-blue hover:bg-blue-700",
       href: "/articles"
     },
     {
       title: "Nouveau Bénéficiaire",
-      description: "Enregistrer une nouvelle personne",
       icon: Users,
       color: "bg-humanitarian-green hover:bg-green-700",
       href: "/beneficiaires"
     },
     {
       title: "Nouveau Prêt",
-      description: "Effectuer un prêt d'article",
       icon: FileText,
       color: "bg-humanitarian-orange hover:bg-orange-700",
       href: "/prets"
@@ -51,7 +48,6 @@ export function QuickActions() {
               </div>
               <div className="text-left flex-1 min-w-0">
                 <p className="font-semibold text-gray-800">{action.title}</p>
-                <p className="text-sm text-gray-500">{action.description}</p>
               </div>
             </div>
           </Link>

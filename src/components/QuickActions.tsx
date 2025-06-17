@@ -38,26 +38,23 @@ export function QuickActions() {
           Actions Rapides
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 p-6 pt-0">
         {actions.map((action, index) => (
-          <Button
+          <Link
             key={index}
-            variant="outline"
-            className="w-full h-auto p-4 justify-start border-2 hover:border-gray-300 transition-all duration-200"
-            asChild
+            to={action.href}
+            className="block w-full h-auto p-4 border rounded-lg hover:bg-gray-50 transition-colors duration-200"
           >
-            <Link to={action.href}>
-              <div className="flex items-center gap-4 w-full">
-                <div className={`p-2 rounded-lg ${action.color} text-white`}>
-                  <action.icon className="h-5 w-5" />
-                </div>
-                <div className="text-left flex-1">
-                  <p className="font-medium text-gray-900">{action.title}</p>
-                  <p className="text-sm text-gray-600">{action.description}</p>
-                </div>
+            <div className="flex items-center gap-4 w-full">
+              <div className={`p-3 rounded-lg ${action.color} text-white flex-shrink-0`}>
+                <action.icon className="h-5 w-5" />
               </div>
-            </Link>
-          </Button>
+              <div className="text-left flex-1 min-w-0">
+                <p className="font-semibold text-gray-800">{action.title}</p>
+                <p className="text-sm text-gray-500">{action.description}</p>
+              </div>
+            </div>
+          </Link>
         ))}
       </CardContent>
     </Card>

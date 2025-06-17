@@ -161,8 +161,7 @@ export function Dashboard() {
       title: "Articles Total",
       value: articlesCount?.toString() || "0",
       description: `${availableArticlesCount || 0} disponibles`,
-      icon: Package,
-      trend: monthlyStats?.articles
+      icon: Package
     },
     {
       title: "Bénéficiaires",
@@ -175,8 +174,7 @@ export function Dashboard() {
       title: "Prêts Actifs",
       value: activeLoansCount?.toString() || "0",
       description: "En cours actuellement",
-      icon: FileText,
-      trend: monthlyStats?.loans
+      icon: FileText
     },
     {
       title: "Donateurs",
@@ -188,23 +186,25 @@ export function Dashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Tableau de Bord</h1>
-        <p className="text-gray-600">Vue d'ensemble de votre système de prêt humanitaire</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statsData.map((stat, index) => (
-          <StatsCard key={index} {...stat} />
-        ))}
+        <p className="text-gray-600">Vue d'ensemble de votre système de prêt humanitaire.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        {/* Colonne Principale */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {statsData.map((stat, index) => (
+              <StatsCard key={index} {...stat} />
+            ))}
+          </div>
           <RecentActivity />
         </div>
-        <div>
+
+        {/* Colonne Latérale */}
+        <div className="lg:col-span-1 space-y-6">
           <QuickActions />
         </div>
       </div>

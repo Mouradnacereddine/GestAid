@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { QrCode, Printer, Download } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ArticleSearch, Article } from '@/components/ArticleSearch';
 
 interface QRCodeGeneratorProps {
   articleId?: string;
@@ -15,12 +16,12 @@ interface QRCodeGeneratorProps {
 }
 
 export function QRCodeGenerator({ articleId, articleName }: QRCodeGeneratorProps) {
-  const [selectedArticle, setSelectedArticle] = useState(articleId || '');
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [labelTemplate, setLabelTemplate] = useState('standard');
   const [quantity, setQuantity] = useState(1);
 
   // Fetch real articles from database
-  const { data: articles = [], isLoading } = useQuery({
+  const { data: articles = [], isLoading } = useQuery<Article[]>({ 
     queryKey: ['articles-for-qr'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -33,6 +34,16 @@ export function QRCodeGenerator({ articleId, articleName }: QRCodeGeneratorProps
     },
   });
 
+  // Effect to set the initial article if an ID is passed via props
+  useEffect(() => {
+    if (articleId && articles.length > 0 && !selectedArticle) {
+      const initialArticle = articles.find(a => a.id === articleId);
+      if (initialArticle) {
+        setSelectedArticle(initialArticle);
+      }
+    }
+  }, [articleId, articles, selectedArticle]);
+
   const templates = [
     { id: 'standard', name: 'Étiquette Standard (5x2.5cm)' },
     { id: 'large', name: 'Grande Étiquette (7x4cm)' },
@@ -44,20 +55,18 @@ export function QRCodeGenerator({ articleId, articleName }: QRCodeGeneratorProps
       toast.error('Veuillez sélectionner un article');
       return;
     }
-
-    const selectedArticleData = articles.find(a => a.id === selectedArticle);
     
     // Generate QR code data
     const qrData = {
-      articleId: selectedArticleData?.identifier,
-      url: `${window.location.origin}/articles/${selectedArticleData?.identifier}`,
+      articleId: selectedArticle?.identifier,
+      url: `${window.location.origin}/articles/${selectedArticle?.identifier}`,
       generatedAt: new Date().toISOString(),
       template: labelTemplate,
       quantity
     };
 
     console.log('QR Code généré:', qrData);
-    toast.success(`QR Code généré pour l'article ${selectedArticleData?.identifier}`);
+    toast.success(`QR Code généré pour l'article ${selectedArticle?.identifier}`);
   };
 
   const printLabels = () => {
@@ -66,9 +75,8 @@ export function QRCodeGenerator({ articleId, articleName }: QRCodeGeneratorProps
       return;
     }
 
-    const selectedArticleData = articles.find(a => a.id === selectedArticle);
     console.log('Impression des étiquettes:', {
-      article: selectedArticleData?.identifier,
+      article: selectedArticle?.identifier,
       template: labelTemplate,
       quantity
     });
@@ -81,17 +89,15 @@ export function QRCodeGenerator({ articleId, articleName }: QRCodeGeneratorProps
       toast.error('Veuillez d\'abord générer un QR code');
       return;
     }
-
-    const selectedArticleData = articles.find(a => a.id === selectedArticle);
     
     // Create a simple PDF-like content for download
-    const content = `Étiquettes QR - ${selectedArticleData?.name}\n\nIdentifiant: ${selectedArticleData?.identifier}\nModèle: ${labelTemplate}\nQuantité: ${quantity}\nGénéré le: ${new Date().toLocaleString('fr-FR')}`;
+    const content = `Étiquettes QR - ${selectedArticle?.name}\n\nIdentifiant: ${selectedArticle?.identifier}\nModèle: ${labelTemplate}\nQuantité: ${quantity}\nGénéré le: ${new Date().toLocaleString('fr-FR')}`;
     
     const blob = new Blob([content], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `etiquettes-${selectedArticleData?.identifier}.txt`;
+    a.download = `etiquettes-${selectedArticle?.identifier}.txt`;
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
@@ -100,9 +106,7 @@ export function QRCodeGenerator({ articleId, articleName }: QRCodeGeneratorProps
     toast.success('Étiquettes téléchargées');
   };
 
-  const selectedArticleData = articles.find(a => a.id === selectedArticle);
-
-  if (isLoading) {
+  if (isLoading && articles.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -130,18 +134,12 @@ export function QRCodeGenerator({ articleId, articleName }: QRCodeGeneratorProps
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Article</label>
-            <Select value={selectedArticle} onValueChange={setSelectedArticle}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un article" />
-              </SelectTrigger>
-              <SelectContent>
-                {articles.map((article) => (
-                  <SelectItem key={article.id} value={article.id}>
-                    {article.identifier} - {article.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ArticleSearch
+              articles={articles}
+              isLoading={isLoading}
+              selectedArticle={selectedArticle}
+              onSelectArticle={setSelectedArticle}
+            />
           </div>
 
           <div className="space-y-2">
@@ -173,19 +171,19 @@ export function QRCodeGenerator({ articleId, articleName }: QRCodeGeneratorProps
           />
         </div>
 
-        {selectedArticle && selectedArticleData && (
+        {selectedArticle && (
           <div className="bg-gray-50 p-4 rounded-lg">
             <h3 className="font-medium mb-2">Aperçu de l'étiquette</h3>
             <div className="bg-white border-2 border-dashed border-gray-300 p-4 text-center">
               <div className="w-24 h-24 bg-gray-200 mx-auto mb-2 flex items-center justify-center">
                 <QrCode className="h-16 w-16 text-gray-400" />
               </div>
-              <p className="text-xs font-mono">{selectedArticleData.identifier}</p>
+              <p className="text-xs font-mono">{selectedArticle.identifier}</p>
               <p className="text-xs text-gray-600 mt-1">
-                {selectedArticleData.name}
+                {selectedArticle.name}
               </p>
               <p className="text-xs text-green-600 mt-1">
-                Status: {selectedArticleData.status}
+                Status: {selectedArticle.status}
               </p>
             </div>
           </div>
@@ -219,7 +217,7 @@ export function QRCodeGenerator({ articleId, articleName }: QRCodeGeneratorProps
           </Button>
         </div>
 
-        {articles.length === 0 && (
+        {articles.length === 0 && !isLoading && (
           <div className="text-center py-4 text-gray-500">
             <p>Aucun article disponible</p>
             <p className="text-sm">Ajoutez des articles pour générer des étiquettes QR</p>

@@ -37,7 +37,13 @@ export function MessageItem({ message, userId, onClick }: MessageItemProps) {
         </div>
         <div className="flex items-center gap-1 text-xs text-gray-500">
           <Clock className="h-3 w-3" />
-          {new Date(message.created_at).toLocaleDateString('fr-FR')}
+          {new Date(message.created_at).toLocaleString('fr-FR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
         </div>
       </div>
       <h3 className={`font-medium ${

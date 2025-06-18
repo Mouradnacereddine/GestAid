@@ -40,7 +40,7 @@ export function TransactionTypeAmount({ control }: TransactionTypeAmountProps) {
         name="amount"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Montant (€) *</FormLabel>
+            <FormLabel>Montant *</FormLabel>
             <FormControl>
               <Input
                 type="number"

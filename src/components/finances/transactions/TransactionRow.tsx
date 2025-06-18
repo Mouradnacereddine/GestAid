@@ -1,5 +1,7 @@
 
 import React from 'react';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatCurrency } from '@/utils/currency';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,6 +29,7 @@ interface TransactionRowProps {
 }
 
 export function TransactionRow({ transaction, onDelete, onEdit }: TransactionRowProps) {
+  const { currency } = useCurrency();
   const reference = `REF-${transaction.id.slice(0, 8).toUpperCase()}`;
   
   const handleDelete = () => {
@@ -76,7 +79,7 @@ export function TransactionRow({ transaction, onDelete, onEdit }: TransactionRow
       <TableCell className="text-right font-medium">
         <span className={transaction.type === 'entree' ? 'text-green-600' : 'text-red-600'}>
           {transaction.type === 'entree' ? '+' : '-'}
-          {Number(transaction.amount).toLocaleString('fr-FR')} €
+          {formatCurrency(Number(transaction.amount), currency)}
         </span>
       </TableCell>
       <TableCell className="text-center">

@@ -1,4 +1,6 @@
 import React from 'react';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatCurrency } from '@/utils/currency';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +29,7 @@ interface ArticlesTableProps {
 }
 
 export function ArticlesTable({ articles, onEdit, onDelete, isDeleting }: ArticlesTableProps) {
+  const { currency } = useCurrency();
   const handleDelete = (article: Article) => {
     const confirmDelete = window.confirm("Supprimer cet article ? Cette action est irréversible.");
     if (confirmDelete) {
@@ -35,7 +38,7 @@ export function ArticlesTable({ articles, onEdit, onDelete, isDeleting }: Articl
   };
 
   const formatValue = (value?: number) => {
-    return value ? `${value}€` : '-';
+    return value ? formatCurrency(value, currency) : '-';
   };
 
   const formatDate = (dateString?: string) => {

@@ -1,5 +1,7 @@
 
 import React from 'react';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatCurrency } from '@/utils/currency';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
@@ -19,6 +21,7 @@ interface TransactionDetailsTableProps {
 }
 
 export function TransactionDetailsTable({ transactions }: TransactionDetailsTableProps) {
+  const { currency } = useCurrency();
   console.log('=== TransactionDetailsTable RENDER START ===');
   console.log('TransactionDetailsTable - Transactions received:', transactions);
   console.log('TransactionDetailsTable - Number of transactions:', transactions?.length || 0);
@@ -102,13 +105,13 @@ export function TransactionDetailsTable({ transactions }: TransactionDetailsTabl
                       <TableCell className={`text-right font-semibold ${
                         transaction.type === 'entree' ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        {transaction.type === 'entree' ? '+' : '-'}{amount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €
+                        {transaction.type === 'entree' ? '+' : '-'}{formatCurrency(amount, currency)}
                       </TableCell>
                       <TableCell className="text-right text-red-600 font-medium">
-                        {debit > 0 ? `${debit.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €` : '-'}
+                        {debit > 0 ? formatCurrency(debit, currency) : '-'}
                       </TableCell>
                       <TableCell className="text-right text-green-600 font-medium">
-                        {credit > 0 ? `${credit.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €` : '-'}
+                        {credit > 0 ? formatCurrency(credit, currency) : '-'}
                       </TableCell>
                     </TableRow>
                   );

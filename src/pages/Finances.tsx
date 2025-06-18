@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { BreadcrumbNav } from '@/components/BreadcrumbNav';
@@ -8,9 +9,10 @@ import { TransactionsTable } from '@/components/finances/TransactionsTable';
 import { FinancialAlerts } from '@/components/finances/FinancialAlerts';
 import { FinancialReports } from '@/components/finances/FinancialReports';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Euro, TrendingUp, AlertTriangle, FileBarChart } from 'lucide-react';
+import { Landmark, TrendingUp, AlertTriangle, FileBarChart, Receipt } from 'lucide-react';
 
 export default function Finances() {
+  const { currency } = useCurrency();
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -19,8 +21,8 @@ export default function Finances() {
         <div className="p-6">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Euro className="h-8 w-8 text-humanitarian-blue" />
-              Gestion Financière
+              <Landmark className="h-8 w-8 text-humanitarian-blue" />
+              Gestion Financière ({currency})
             </h1>
             <p className="text-gray-600 mt-2">
               Suivi complet des recettes, dépenses et analyse financière de l'association
@@ -42,7 +44,7 @@ export default function Finances() {
                 Alertes
               </TabsTrigger>
               <TabsTrigger value="reports" className="flex items-center gap-2">
-                <Euro className="h-4 w-4" />
+                <Receipt className="h-4 w-4" />
                 Rapports
               </TabsTrigger>
             </TabsList>

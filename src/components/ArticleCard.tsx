@@ -1,5 +1,7 @@
 
 import React from 'react';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatCurrency } from '@/utils/currency';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +29,7 @@ interface ArticleCardProps {
 }
 
 export function ArticleCard({ article, onEdit, onDelete, isDeleting }: ArticleCardProps) {
+  const { currency } = useCurrency();
   const handleDelete = () => {
     const confirmDelete = window.confirm("Supprimer cet article ? Cette action est irréversible.");
     if (confirmDelete) {
@@ -88,7 +91,7 @@ export function ArticleCard({ article, onEdit, onDelete, isDeleting }: ArticleCa
         {article.estimated_value && (
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Euro className="h-4 w-4" />
-            <span>{article.estimated_value}€</span>
+            <span>{formatCurrency(article.estimated_value, currency)}</span>
           </div>
         )}
 

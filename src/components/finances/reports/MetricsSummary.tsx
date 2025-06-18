@@ -1,5 +1,7 @@
 
 import React from 'react';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatCurrency } from '@/utils/currency';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, Calculator, FileText } from 'lucide-react';
 
@@ -16,6 +18,7 @@ export function MetricsSummary({
   netResult,
   transactionCount
 }: MetricsSummaryProps) {
+  const { currency } = useCurrency();
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
       <Card>
@@ -24,7 +27,7 @@ export function MetricsSummary({
             <div>
               <p className="text-sm font-medium text-gray-600">Total Recettes</p>
               <p className="text-2xl font-bold text-green-600">
-                {totalRevenue.toLocaleString('fr-FR')} €
+                {formatCurrency(totalRevenue, currency)}
               </p>
             </div>
             <TrendingUp className="h-8 w-8 text-green-600" />
@@ -38,7 +41,7 @@ export function MetricsSummary({
             <div>
               <p className="text-sm font-medium text-gray-600">Total Dépenses</p>
               <p className="text-2xl font-bold text-red-600">
-                {totalExpenses.toLocaleString('fr-FR')} €
+                {formatCurrency(totalExpenses, currency)}
               </p>
             </div>
             <TrendingUp className="h-8 w-8 text-red-600 rotate-180" />
@@ -52,7 +55,7 @@ export function MetricsSummary({
             <div>
               <p className="text-sm font-medium text-gray-600">Résultat Net</p>
               <p className={`text-2xl font-bold ${netResult >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {netResult.toLocaleString('fr-FR')} €
+                {formatCurrency(netResult, currency)}
               </p>
             </div>
             <Calculator className="h-8 w-8 text-blue-600" />

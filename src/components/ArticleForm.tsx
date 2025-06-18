@@ -265,7 +265,7 @@ export function ArticleForm({ onClose, articleId, defaultValues }: ArticleFormPr
               name="estimated_value"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Valeur estimée (€)</FormLabel>
+                  <FormLabel>Valeur estimée</FormLabel>
                   <FormControl>
                     <Input {...field} type="number" step="0.01" placeholder="0.00" />
                   </FormControl>

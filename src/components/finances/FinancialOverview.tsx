@@ -1,5 +1,7 @@
 
 import React, { useMemo } from 'react';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatCurrency } from '@/utils/currency';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { StatsCard } from '@/components/StatsCard';
@@ -11,6 +13,7 @@ import { CategoryBarChart } from '@/components/finances/reports/CategoryBarChart
 import { ExpenseDistributionChart } from '@/components/finances/reports/ExpenseDistributionChart';
 
 export function FinancialOverview() {
+  const { currency } = useCurrency();
   const { data: transactions } = useQuery({
     queryKey: ['financial-overview'],
     queryFn: async () => {
@@ -108,7 +111,7 @@ export function FinancialOverview() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Recettes du mois"
-          value={`${financialStats.totalRevenue.toLocaleString('fr-FR')} €`}
+          value={formatCurrency(financialStats.totalRevenue, currency)}
           description="vs mois précédent"
           icon={TrendingUp}
           trend={financialStats.revenueTrend}
@@ -116,7 +119,7 @@ export function FinancialOverview() {
         
         <StatsCard
           title="Dépenses du mois"
-          value={`${financialStats.totalExpenses.toLocaleString('fr-FR')} €`}
+          value={formatCurrency(financialStats.totalExpenses, currency)}
           description="vs mois précédent"
           icon={TrendingDown}
           trend={financialStats.expensesTrend}
@@ -124,7 +127,7 @@ export function FinancialOverview() {
         
         <StatsCard
           title="Solde mensuel"
-          value={`${financialStats.balance.toLocaleString('fr-FR')} €`}
+          value={formatCurrency(financialStats.balance, currency)}
           description="vs mois précédent"
           icon={financialStats.balance >= 0 ? Wallet : CreditCard}
           trend={financialStats.balanceTrend}

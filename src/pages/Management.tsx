@@ -23,7 +23,7 @@ export default function Management() {
           </div>
 
           <Tabs defaultValue="messaging" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="messaging" className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
                 Messagerie
@@ -35,10 +35,6 @@ export default function Management() {
               <TabsTrigger value="alerts" className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4" />
                 Alertes Stock
-              </TabsTrigger>
-              <TabsTrigger value="reports" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Rapports
               </TabsTrigger>
             </TabsList>
 
@@ -65,9 +61,7 @@ export default function Management() {
               </div>
             </TabsContent>
 
-            <TabsContent value="reports" className="space-y-6">
-              <ReportGenerator />
-            </TabsContent>
+
           </Tabs>
         </div>
       </SidebarInset>

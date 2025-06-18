@@ -1,5 +1,7 @@
 
 import React from 'react';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatCurrency } from '@/utils/currency';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, TrendingDown, TrendingUp, Info, CheckCircle } from 'lucide-react';
 
 export function FinancialAlerts() {
+  const { currency } = useCurrency();
   const { data: transactions } = useQuery({
     queryKey: ['financial-alerts'],
     queryFn: async () => {
@@ -61,7 +64,7 @@ export function FinancialAlerts() {
       type: 'error',
       icon: AlertTriangle,
       title: 'Solde négatif',
-      description: `Le solde mensuel est de ${balance.toLocaleString('fr-FR')} €. Attention aux liquidités.`,
+      description: `Le solde mensuel est de ${formatCurrency(balance, currency)}. Attention aux liquidités.`,
       severity: 'high'
     });
   }
@@ -94,7 +97,7 @@ export function FinancialAlerts() {
       type: 'success',
       icon: CheckCircle,
       title: 'Situation financière saine',
-      description: `Solde positif de ${balance.toLocaleString('fr-FR')} € avec un ratio dépenses/recettes de ${expenseRatio.toFixed(1)}%.`,
+      description: `Solde positif de ${formatCurrency(balance, currency)} avec un ratio dépenses/recettes de ${expenseRatio.toFixed(1)}%.`,
       severity: 'positive'
     });
   }

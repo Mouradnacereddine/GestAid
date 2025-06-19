@@ -8,7 +8,8 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { BeneficiaryFormFields } from '@/components/beneficiary/BeneficiaryFormFields';
 import { beneficiarySchema, BeneficiaryFormData } from '@/components/beneficiary/BeneficiaryFormSchema';
-import { AccessDenied } from '@/components/beneficiary/AccessDenied';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { useBeneficiaryMutation } from '@/hooks/useBeneficiaryMutation';
 import { useBeneficiaryUpdate } from '@/hooks/useBeneficiaryUpdate';
 import { useBeneficiary } from '@/hooks/useBeneficiary';
@@ -91,7 +92,17 @@ export function BeneficiaryForm({ onClose, beneficiaryId }: BeneficiaryFormProps
 
   // Afficher un message si l'utilisateur n'a pas les droits nécessaires
   if (userProfile && !['admin', 'gestionnaire'].includes(userProfile.role)) {
-    return <AccessDenied onClose={onClose} userRole={userProfile.role} />;
+    return (
+      <Alert variant="destructive" className="mt-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Accès Refusé</AlertTitle>
+        <AlertDescription>
+          Vous n'avez pas les permissions nécessaires pour ajouter des bénéficiaires.
+          Seuls les administrateurs et gestionnaires peuvent effectuer cette action.
+          <p className="mt-2">Votre rôle actuel: <strong>{userProfile.role}</strong></p>
+        </AlertDescription>
+      </Alert>
+    );
   }
 
   // Afficher un loader pendant le chargement des données du bénéficiaire

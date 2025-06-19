@@ -2,6 +2,7 @@
 -- Créer la table messages pour le système de messagerie interne
 CREATE TABLE public.messages (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  conversation_id UUID,
   subject TEXT NOT NULL,
   content TEXT NOT NULL,
   sender_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -15,6 +16,7 @@ CREATE TABLE public.messages (
 CREATE INDEX messages_sender_id_idx ON public.messages(sender_id);
 CREATE INDEX messages_recipient_id_idx ON public.messages(recipient_id);
 CREATE INDEX messages_created_at_idx ON public.messages(created_at DESC);
+CREATE INDEX messages_conversation_id_idx ON public.messages(conversation_id);
 
 -- Activer RLS (Row Level Security)
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;

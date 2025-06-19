@@ -30,7 +30,6 @@ export function MonthlyEvolutionChart({ data }: MonthlyEvolutionChartProps) {
           }}
           className="h-[350px]"
         >
-          <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data}>
               <XAxis dataKey="monthLabel" />
               <YAxis />
@@ -58,7 +57,6 @@ export function MonthlyEvolutionChart({ data }: MonthlyEvolutionChartProps) {
                 strokeWidth={3}
               />
             </AreaChart>
-          </ResponsiveContainer>
         </ChartContainer>
       </CardContent>
     </Card>

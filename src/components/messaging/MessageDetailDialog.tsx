@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getPriorityColor, getPriorityLabel, getDisplayName, Message, Profile } from './MessageUtils';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -65,6 +65,9 @@ export function MessageDetailDialog({ message, userId, onClose, onReply }: Messa
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{message.subject}</DialogTitle>
+          <DialogDescription>
+            Détails du message.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex flex-col text-sm text-gray-600 gap-2">

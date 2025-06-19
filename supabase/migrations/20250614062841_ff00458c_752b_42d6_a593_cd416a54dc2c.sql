@@ -192,7 +192,7 @@ CREATE POLICY "Everyone can view donors" ON public.donors FOR SELECT TO authenti
 CREATE POLICY "Admins and managers can manage donors" ON public.donors FOR ALL TO authenticated USING (public.is_admin_or_manager(auth.uid()));
 
 -- Politiques RLS pour les bénéficiaires
-CREATE POLICY "Admins and managers can view beneficiaries" ON public.beneficiaries FOR SELECT TO authenticated USING (public.is_admin_or_manager(auth.uid()));
+CREATE POLICY "Admins and managers can view beneficiaries" ON public.beneficiaries FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Admins and managers can manage beneficiaries" ON public.beneficiaries FOR ALL TO authenticated USING (public.is_admin_or_manager(auth.uid()));
 
 -- Politiques RLS pour les articles
@@ -200,23 +200,23 @@ CREATE POLICY "Everyone can view articles" ON public.articles FOR SELECT TO auth
 CREATE POLICY "Admins and managers can manage articles" ON public.articles FOR ALL TO authenticated USING (public.is_admin_or_manager(auth.uid()));
 
 -- Politiques RLS pour les prêts
-CREATE POLICY "Admins and managers can view loans" ON public.loans FOR SELECT TO authenticated USING (public.is_admin_or_manager(auth.uid()));
+CREATE POLICY "Admins and managers can view loans" ON public.loans FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Admins and managers can manage loans" ON public.loans FOR ALL TO authenticated USING (public.is_admin_or_manager(auth.uid()));
 
 -- Politiques RLS pour les articles prêtés
-CREATE POLICY "Admins and managers can view loan articles" ON public.loan_articles FOR SELECT TO authenticated USING (public.is_admin_or_manager(auth.uid()));
+CREATE POLICY "Admins and managers can view loan articles" ON public.loan_articles FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Admins and managers can manage loan articles" ON public.loan_articles FOR ALL TO authenticated USING (public.is_admin_or_manager(auth.uid()));
 
 -- Politiques RLS pour les dons
-CREATE POLICY "Admins and managers can view donations" ON public.donations FOR SELECT TO authenticated USING (public.is_admin_or_manager(auth.uid()));
+CREATE POLICY "Admins and managers can view donations" ON public.donations FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Admins and managers can manage donations" ON public.donations FOR ALL TO authenticated USING (public.is_admin_or_manager(auth.uid()));
 
 -- Politiques RLS pour les transactions financières
-CREATE POLICY "Admins can view financial transactions" ON public.financial_transactions FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "Admins can view financial transactions" ON public.financial_transactions FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Admins can manage financial transactions" ON public.financial_transactions FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin'));
 
 -- Politiques RLS pour les journaux d'activité
-CREATE POLICY "Admins can view activity logs" ON public.activity_logs FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "Admins can view activity logs" ON public.activity_logs FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Everyone can create activity logs" ON public.activity_logs FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 
 -- Trigger pour créer automatiquement un profil utilisateur

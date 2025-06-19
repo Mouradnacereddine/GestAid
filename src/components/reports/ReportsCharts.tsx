@@ -87,7 +87,6 @@ export function ReportsCharts() {
             config={{}}
             className="h-[300px]"
           >
-            <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={articleStatusData}
@@ -105,7 +104,6 @@ export function ReportsCharts() {
                 </Pie>
                 <ChartTooltip content={<ChartTooltipContent />} />
               </PieChart>
-            </ResponsiveContainer>
           </ChartContainer>
         </CardContent>
       </Card>
@@ -119,7 +117,6 @@ export function ReportsCharts() {
             config={{}}
             className="h-[300px]"
           >
-            <ResponsiveContainer width="100%" height="100%">
               <LineChart data={loanTrendData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
@@ -129,7 +126,6 @@ export function ReportsCharts() {
                 <Line type="monotone" dataKey="prêts" stroke="#3b82f6" strokeWidth={2} name="Nouveaux prêts" />
                 <Line type="monotone" dataKey="retours" stroke="#22c55e" strokeWidth={2} name="Retours" />
               </LineChart>
-            </ResponsiveContainer>
           </ChartContainer>
         </CardContent>
       </Card>
@@ -143,7 +139,6 @@ export function ReportsCharts() {
             config={{}}
             className="h-[300px]"
           >
-            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={articleStateData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="état" />
@@ -151,7 +146,6 @@ export function ReportsCharts() {
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="nombre" fill="#3b82f6" />
               </BarChart>
-            </ResponsiveContainer>
           </ChartContainer>
         </CardContent>
       </Card>

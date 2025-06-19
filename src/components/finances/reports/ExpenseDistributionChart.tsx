@@ -28,7 +28,6 @@ export function ExpenseDistributionChart({ data }: ExpenseDistributionChartProps
           }}
           className="h-[350px]"
         >
-          <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={data}
@@ -46,7 +45,6 @@ export function ExpenseDistributionChart({ data }: ExpenseDistributionChartProps
               </Pie>
               <ChartTooltip content={<ChartTooltipContent />} />
             </PieChart>
-          </ResponsiveContainer>
         </ChartContainer>
       </CardContent>
     </Card>

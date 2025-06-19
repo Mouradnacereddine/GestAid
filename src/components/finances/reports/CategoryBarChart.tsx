@@ -28,7 +28,6 @@ export function CategoryBarChart({ data }: CategoryBarChartProps) {
           }}
           className="h-[400px]"
         >
-          <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} layout="horizontal">
               <XAxis type="number" />
               <YAxis type="category" dataKey="category" width={120} />
@@ -36,7 +35,6 @@ export function CategoryBarChart({ data }: CategoryBarChartProps) {
               <Bar dataKey="recettes" fill="#22c55e" />
               <Bar dataKey="depenses" fill="#ef4444" />
             </BarChart>
-          </ResponsiveContainer>
         </ChartContainer>
       </CardContent>
     </Card>

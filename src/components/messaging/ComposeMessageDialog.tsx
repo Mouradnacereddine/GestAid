@@ -6,7 +6,7 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Send } from 'lucide-react';
@@ -68,6 +68,9 @@ export function ComposeMessageDialog({
     onSend(data);
   };
 
+  const recipient_ids = form.watch('recipient_ids');
+  const cc_recipient_ids = form.watch('cc_recipient_ids');
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
@@ -76,6 +79,9 @@ export function ComposeMessageDialog({
       >
         <DialogHeader>
           <DialogTitle>Nouveau Message</DialogTitle>
+          <DialogDescription>
+            Composez et envoyez un nouveau message à un ou plusieurs destinataires.
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -90,6 +96,7 @@ export function ComposeMessageDialog({
                     currentUserId={currentUserId}
                     label="Destinataires *"
                     placeholder="Rechercher des destinataires..."
+                    excludeIds={cc_recipient_ids}
                   />
                 )}
               />
@@ -103,6 +110,7 @@ export function ComposeMessageDialog({
                     currentUserId={currentUserId}
                     label="Copie (CC)"
                     placeholder="Ajouter des destinataires en copie"
+                    excludeIds={recipient_ids}
                   />
                 )}
               />

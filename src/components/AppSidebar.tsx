@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Heart, Home, Package, Users, FileText, DollarSign, Settings, LogOut, BarChart3 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
@@ -67,6 +68,7 @@ const menuItems = [
 export function AppSidebar() {
   const location = useLocation();
   const { signOut, user } = useAuth();
+  const { state } = useSidebar();
 
   return (
     <Sidebar collapsible="icon">
@@ -91,7 +93,7 @@ export function AppSidebar() {
                   >
                     <Link to={item.url} className="flex items-center gap-2">
                       <item.icon className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">{item.title}</span>
+                      {state === "expanded" && <span className="truncate">{item.title}</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

@@ -12,7 +12,6 @@ interface Profile {
   id: string;
   first_name: string | null;
   last_name: string | null;
-  email: string | null;
 }
 
 interface RecipientSearchProps {
@@ -21,6 +20,7 @@ interface RecipientSearchProps {
   currentUserId?: string;
   label: string;
   placeholder?: string;
+  excludeIds?: string[];
 }
 
 export function RecipientSearch({ 
@@ -28,7 +28,8 @@ export function RecipientSearch({
   onChange, 
   currentUserId, 
   label,
-  placeholder = "Rechercher un destinataire..." 
+  placeholder = "Rechercher un destinataire...",
+  excludeIds = []
 }: RecipientSearchProps) {
   const [searchValue, setSearchValue] = useState('');
   const [showResults, setShowResults] = useState(false);
@@ -36,15 +37,18 @@ export function RecipientSearch({
   const [isFocused, setIsFocused] = useState(false);
 
   const { data: profiles = [], isLoading } = useQuery({
-    queryKey: ['profiles-search', searchValue],
+    queryKey: ['profiles-search', searchValue, currentUserId, excludeIds],
     queryFn: async () => {
       let query = supabase
         .from('profiles')
-        .select('id, first_name, last_name, email')
-        .limit(20);
+        .select('id, first_name, last_name');
+
+      if (currentUserId) {
+        query = query.neq('id', currentUserId);
+      }
       
       if (searchValue) {
-        query = query.or(`first_name.ilike.%${searchValue}%,last_name.ilike.%${searchValue}%,email.ilike.%${searchValue}%`);
+        query = query.or(`first_name.ilike.%${searchValue}%,last_name.ilike.%${searchValue}%`);
       }
       
       const { data, error } = await query;
@@ -55,8 +59,8 @@ export function RecipientSearch({
       }
       
       const filtered = data?.filter(profile => {
-        if (currentUserId && profile.id === currentUserId) return false;
         if (value.includes(profile.id)) return false; // Don't show already selected
+        if (excludeIds.includes(profile.id)) return false; // Don't show excluded IDs
         return true;
       }) || [];
       
@@ -69,7 +73,7 @@ export function RecipientSearch({
     queryKey: ['profiles-initial', value],
     queryFn: async () => {
       if (!value || value.length === 0) return [];
-      const { data, error } = await supabase.from('profiles').select('id, first_name, last_name, email').in('id', value);
+      const { data, error } = await supabase.from('profiles').select('id, first_name, last_name').in('id', value);
       if (error) throw error;
       return data || [];
     },
@@ -85,8 +89,10 @@ export function RecipientSearch({
   }, [initialProfiles, value]);
 
   const getDisplayName = (profile: Profile) => {
-    const name = [profile.first_name, profile.last_name].filter(Boolean).join(' ');
-    return name || profile.email || 'Utilisateur sans nom';
+    const nameParts = [profile.first_name, profile.last_name].filter(Boolean);
+    const uniqueNameParts = [...new Set(nameParts)];
+    const name = uniqueNameParts.join(' ');
+    return name || 'Utilisateur sans nom';
   };
   
   const handleSelect = (profile: Profile) => {
@@ -158,9 +164,6 @@ export function RecipientSearch({
                     >
                       <div className="flex-1">
                         <p className="font-medium">{getDisplayName(profile)}</p>
-                        {profile.email && profile.email !== getDisplayName(profile) && (
-                          <span className="text-xs text-muted-foreground">{profile.email}</span>
-                        )}
                       </div>
                     </div>
                   ))

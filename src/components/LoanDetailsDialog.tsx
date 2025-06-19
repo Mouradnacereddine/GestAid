@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 
@@ -36,7 +36,10 @@ export function LoanDetailsDialog({ loan, isOpen, onClose }: LoanDetailsDialogPr
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Détails du prêt {loan.loan_number || 'Sans numéro'}</DialogTitle>
+                    <DialogTitle>Détails du prêt {loan.loan_number || 'Sans numéro'}</DialogTitle>
+          <DialogDescription>
+            Informations complètes sur le prêt, le bénéficiaire et les articles associés.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6">

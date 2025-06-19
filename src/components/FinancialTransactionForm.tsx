@@ -26,6 +26,10 @@ export function FinancialTransactionForm({ onClose }: FinancialTransactionFormPr
   const form = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
+      type: 'entree',
+      category: '',
+      amount: 0,
+      description: '',
       transaction_date: new Date().toISOString().split('T')[0],
       donor_id: '',
     },

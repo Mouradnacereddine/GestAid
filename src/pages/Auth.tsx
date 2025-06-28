@@ -8,9 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { Heart } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Auth() {
-  const { user, signIn, signUp } = useAuth();
+  const { user, signIn } = useAuth();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   if (user) {
@@ -29,17 +32,38 @@ export default function Auth() {
     setIsLoading(false);
   };
 
-  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleRequestAccess = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
     const firstName = formData.get('firstName') as string;
     const lastName = formData.get('lastName') as string;
-    
-    await signUp(email, password, firstName, lastName);
+    const agencyName = formData.get('agencyName') as string;
+
+    const { error } = await (supabase as any)
+      .from('admin_signup_requests')
+      .insert({
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        agency_name: agencyName,
+      });
+
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: "Une erreur est survenue lors de l'envoi de votre demande.",
+      });
+    } else {
+      toast({
+        title: 'Demande envoyée',
+        description: 'Votre demande a été soumise et sera examinée par le superadmin.',
+      });
+    }
+
     setIsLoading(false);
   };
 
@@ -65,7 +89,7 @@ export default function Auth() {
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Se connecter</TabsTrigger>
-                <TabsTrigger value="signup">S'inscrire</TabsTrigger>
+                <TabsTrigger value="request">Demander l'accès</TabsTrigger>
               </TabsList>
               
               <TabsContent value="signin">
@@ -99,8 +123,8 @@ export default function Auth() {
                 </form>
               </TabsContent>
               
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
+              <TabsContent value="request">
+                <form onSubmit={handleRequestAccess} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">Prénom</Label>
@@ -132,11 +156,11 @@ export default function Auth() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Mot de passe</Label>
+                    <Label htmlFor="agencyName">Nom de l'agence</Label>
                     <Input
-                      id="signup-password"
-                      name="password"
-                      type="password"
+                      id="agencyName"
+                      name="agencyName"
+                      type="text"
                       required
                     />
                   </div>
@@ -145,7 +169,7 @@ export default function Auth() {
                     className="w-full bg-humanitarian-green hover:bg-green-700"
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Inscription...' : "S'inscrire"}
+                    {isLoading ? 'Envoi...' : 'Envoyer la demande'}
                   </Button>
                 </form>
               </TabsContent>

@@ -16,6 +16,8 @@ import Donors from "./pages/Donors";
 import Reports from "./pages/Reports";
 import Finances from "./pages/Finances";
 import Management from "./pages/Management";
+import AdminRequests from "./pages/AdminRequests";
+import AppLayout from "./components/AppLayout";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -40,78 +42,28 @@ const App = () => {
                 <Sonner />
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
-                  <Route
-                    path="/"
-                    element={
-                      <ProtectedRoute>
-                        <Index />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/articles"
-                    element={
-                      <ProtectedRoute>
-                        <Articles />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/beneficiaires"
-                    element={
-                      <ProtectedRoute>
-                        <Beneficiaries />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/prets"
-                    element={
-                      <ProtectedRoute>
-                        <Loans />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/donateurs"
-                    element={
-                      <ProtectedRoute>
-                        <Donors />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/rapports"
-                    element={
-                      <ProtectedRoute>
-                        <Reports />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/finances"
-                    element={
-                      <ProtectedRoute>
-                        <Finances />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/gestion"
-                    element={
-                      <ProtectedRoute>
-                        <Management />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/parametres"
-                    element={
-                      <ProtectedRoute>
-                        <Settings />
-                      </ProtectedRoute>
-                    }
-                  />
+                  
+                  {/* Protected routes with layout */}
+                  <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                    <Route index element={<Index />} />
+                    <Route path="articles" element={<Articles />} />
+                    <Route path="beneficiaires" element={<Beneficiaries />} />
+                    <Route path="prets" element={<Loans />} />
+                    <Route path="donateurs" element={<Donors />} />
+                    <Route path="rapports" element={<Reports />} />
+                    <Route path="finances" element={<Finances />} />
+                    <Route path="gestion" element={<Management />} />
+                    <Route path="parametres" element={<Settings />} />
+                    <Route
+                      path="admin-requests"
+                      element={
+                        <ProtectedRoute allowedRoles={['superadmin']}>
+                          <AdminRequests />
+                        </ProtectedRoute>
+                      }
+                    />
+                  </Route>
+
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </div>

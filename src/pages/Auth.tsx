@@ -52,11 +52,19 @@ export default function Auth() {
       });
 
     if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: "Une erreur est survenue lors de l'envoi de votre demande.",
-      });
+      if (error.code === '23505') {
+        toast({
+          variant: 'destructive',
+          title: 'Erreur',
+          description: 'Une demande avec cette adresse e-mail a déjà été soumise.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Erreur',
+          description: `Une erreur est survenue lors de l'envoi de votre demande: ${error.message}`,
+        });
+      }
     } else {
       toast({
         title: 'Demande envoyée',

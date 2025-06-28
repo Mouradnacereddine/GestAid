@@ -11,7 +11,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
 } from "@/components/ui/sidebar";
-import { Heart, Home, Package, Users, FileText, DollarSign, Settings, LogOut, BarChart3 } from "lucide-react";
+import { Heart, Home, Package, Users, FileText, DollarSign, Settings, LogOut, BarChart3, UserCheck } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
@@ -67,7 +67,7 @@ const menuItems = [
 
 export function AppSidebar() {
   const location = useLocation();
-  const { signOut, user } = useAuth();
+  const { signOut, user, profile } = useAuth();
   const { state } = useSidebar();
 
   return (
@@ -98,6 +98,20 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {profile?.role === 'superadmin' && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === '/admin-requests'}
+                    tooltip="Demandes d'accès"
+                  >
+                    <Link to="/admin-requests" className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4 flex-shrink-0" />
+                      {state === "expanded" && <span className="truncate">Demandes d'accès</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

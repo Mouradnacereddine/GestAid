@@ -1,14 +1,15 @@
 
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, UserRole } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  allowedRoles?: UserRole[];
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+  const { user, profile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -20,6 +21,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
+    return <Navigate to="/" replace />; // Redirect to a safe page if role is not allowed
   }
 
   return <>{children}</>;

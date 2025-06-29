@@ -1,6 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -29,21 +28,7 @@ const fetchAdminRequests = async () => {
 };
 
 export default function AdminRequests() {
-  useEffect(() => {
-    const checkClaims = async () => {
-      console.log('Vérification des droits (claims)...');
-      const { data, error } = await supabase.rpc('get_my_claims');
-      if (error) {
-        console.error('Erreur lors de la récupération des droits:', error);
-      } else {
-        console.log('--- CONTENU DU BADGE DE SÉCURITÉ (CLAIMS) ---');
-        console.log(data);
-        console.log('-------------------------------------------');
-      }
-    };
 
-    checkClaims();
-  }, []);
 
   const queryClient = useQueryClient();
 

@@ -1,3 +1,7 @@
+-- Drop the existing function to ensure it's truly replaced
+DROP FUNCTION IF EXISTS public.approve_admin_request(uuid);
+
+-- Re-create the function with the corrected logic to ensure the update is applied
 create or replace function public.approve_admin_request(request_id uuid)
 returns void
 language plpgsql
@@ -48,18 +52,5 @@ begin
   set status = 'approved', reviewed_by = auth.uid(), reviewed_at = now()
   where id = request_id;
 
-end;
-$$;
-
-create or replace function public.reject_admin_request(request_id uuid)
-returns void
-language plpgsql
-security definer set search_path = public
-as $$
-begin
-  -- Update the request status to 'rejected'
-  update public.admin_signup_requests
-  set status = 'rejected', reviewed_by = auth.uid(), reviewed_at = now()
-  where id = request_id and status = 'pending';
 end;
 $$;

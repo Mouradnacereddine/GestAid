@@ -1,9 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 interface AdminRequest {
   id: string;
@@ -15,68 +16,54 @@ interface AdminRequest {
   created_at: string;
 }
 
+const fetchAdminRequests = async () => {
+  const { data, error } = await supabase
+    .from('admin_signup_requests')
+    .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return data as AdminRequest[];
+};
+
 export default function AdminRequests() {
-  const [requests, setRequests] = useState<AdminRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
-  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const fetchRequests = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('admin_signup_requests')
-      .select('*')
-      .eq('status', 'pending');
+  const { data: requests, isLoading, isError, error } = useQuery({
+    queryKey: ['adminRequests'],
+    queryFn: fetchAdminRequests,
+  });
 
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: 'Impossible de charger les demandes.',
-      });
-    } else {
-      setRequests(data as AdminRequest[]);
-    }
-    setLoading(false);
-  };
+  const actionMutation = useMutation({
+    mutationFn: async ({ requestId, action }: { requestId: string; action: 'approve' | 'reject' }) => {
+      const rpcName = action === 'approve' ? 'confirm_admin_request' : 'reject_admin_request';
+      const { error } = await supabase.rpc(rpcName, { request_id: requestId });
+      if (error) throw new Error(error.message);
+      return { action };
+    },
+    onSuccess: ({ action }) => {
+      toast.success(`La demande a été ${action === 'approve' ? 'approuvée' : 'rejetée'}.`);
+      queryClient.invalidateQueries({ queryKey: ['adminRequests'] });
+    },
+    onError: (error) => {
+      toast.error(`L'action a échoué : ${error.message}`);
+    },
+  });
 
-  useEffect(() => {
-    fetchRequests();
-  }, []);
+  if (isLoading) {
+    return <div className="flex items-center justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /> Chargement des demandes...</div>;
+  }
 
-  const handleAction = async (requestId: string, action: 'approve' | 'reject') => {
-    setActionLoading(prev => ({ ...prev, [requestId]: true }));
-
-    const rpcName = action === 'approve' ? 'approve_admin_request' : 'reject_admin_request';
-    const { error } = await supabase.rpc(rpcName, { request_id: requestId });
-
-    if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: error.message,
-      });
-    } else {
-      toast({
-        title: 'Succès',
-        description: `La demande a été ${action === 'approve' ? 'approuvée' : 'rejetée'}.`,
-      });
-      // Refresh list
-      setRequests(prev => prev.filter(req => req.id !== requestId));
-    }
-
-    setActionLoading(prev => ({ ...prev, [requestId]: false }));
-  };
-
-  if (loading) {
-    return <div>Chargement...</div>;
+  if (isError) {
+    return <div className="p-8 text-red-600">Erreur: {error.message}</div>;
   }
 
   return (
-    <div className="p-4">
+    <div className="p-6">
       <Card>
         <CardHeader>
-          <CardTitle>Demandes d'accès Administrateur</CardTitle>
+          <CardTitle>Demandes d'inscription Administrateur</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -86,43 +73,40 @@ export default function AdminRequests() {
                 <TableHead>Email</TableHead>
                 <TableHead>Agence</TableHead>
                 <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {requests.length > 0 ? (
-                requests.map((req) => (
-                  <TableRow key={req.id}>
-                    <TableCell>{req.first_name} {req.last_name}</TableCell>
-                    <TableCell>{req.email}</TableCell>
-                    <TableCell>{req.agency_name}</TableCell>
-                    <TableCell>{new Date(req.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell className="space-x-2">
+              {requests?.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center h-24">Aucune demande en attente</TableCell>
+                </TableRow>
+              ) : (
+                requests?.map((request) => (
+                  <TableRow key={request.id}>
+                    <TableCell>{request.first_name} {request.last_name}</TableCell>
+                    <TableCell>{request.email}</TableCell>
+                    <TableCell>{request.agency_name}</TableCell>
+                    <TableCell>{new Date(request.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell className="space-x-2 text-right">
                       <Button 
                         size="sm" 
-                        variant="outline"
-                        onClick={() => handleAction(req.id, 'approve')}
-                        disabled={actionLoading[req.id]}
+                        onClick={() => actionMutation.mutate({ requestId: request.id, action: 'approve' })}
+                        disabled={actionMutation.isPending}
                       >
-                        {actionLoading[req.id] ? '...' : 'Approuver'}
+                        Approuver
                       </Button>
                       <Button 
                         size="sm" 
-                        variant="destructive"
-                        onClick={() => handleAction(req.id, 'reject')}
-                        disabled={actionLoading[req.id]}
+                        variant="destructive" 
+                        onClick={() => actionMutation.mutate({ requestId: request.id, action: 'reject' })}
+                        disabled={actionMutation.isPending}
                       >
                         Rejeter
                       </Button>
                     </TableCell>
                   </TableRow>
                 ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center">
-                    Aucune demande en attente.
-                  </TableCell>
-                </TableRow>
               )}
             </TableBody>
           </Table>

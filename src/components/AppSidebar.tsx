@@ -22,46 +22,61 @@ const menuItems = [
     title: "Tableau de Bord",
     url: "/",
     icon: Home,
+    allowedRoles: ['superadmin', 'admin', 'benevole'],
   },
   {
     title: "Articles",
     url: "/articles",
     icon: Package,
+    allowedRoles: ['superadmin', 'admin', 'benevole'],
   },
   {
     title: "Bénéficiaires",
     url: "/beneficiaires",
     icon: Users,
+    allowedRoles: ['superadmin', 'admin', 'benevole'],
   },
   {
     title: "Prêts",
     url: "/prets",
     icon: FileText,
+    allowedRoles: ['superadmin', 'admin', 'benevole'],
   },
   {
     title: "Donateurs",
     url: "/donateurs",
     icon: Heart,
+    allowedRoles: ['superadmin', 'admin'],
   },
   {
     title: "Rapports",
     url: "/rapports",
     icon: BarChart3,
+    allowedRoles: ['superadmin', 'admin'],
   },
   {
     title: "Finances",
     url: "/finances",
     icon: DollarSign,
+    allowedRoles: ['superadmin', 'admin'],
   },
   {
     title: "Gestion Avancée",
     url: "/gestion",
     icon: Settings,
+    allowedRoles: ['superadmin', 'admin'],
+  },
+  {
+    title: "Demandes d'accès",
+    url: "/admin-requests",
+    icon: UserCheck,
+    allowedRoles: ['superadmin'],
   },
   {
     title: "Paramètres",
     url: "/parametres",
     icon: Settings,
+    allowedRoles: ['superadmin', 'admin'],
   },
 ];
 
@@ -69,6 +84,10 @@ export function AppSidebar() {
   const location = useLocation();
   const { signOut, user, profile } = useAuth();
   const { state } = useSidebar();
+
+  const visibleMenuItems = menuItems.filter(
+    (item) => profile && item.allowedRoles.includes(profile.role)
+  );
 
   return (
     <Sidebar collapsible="icon">
@@ -84,7 +103,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {visibleMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     asChild 
@@ -98,20 +117,6 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              {profile?.role === 'superadmin' && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === '/admin-requests'}
-                    tooltip="Demandes d'accès"
-                  >
-                    <Link to="/admin-requests" className="flex items-center gap-2">
-                      <UserCheck className="h-4 w-4 flex-shrink-0" />
-                      {state === "expanded" && <span className="truncate">Demandes d'accès</span>}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

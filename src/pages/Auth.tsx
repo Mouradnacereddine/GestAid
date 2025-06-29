@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Auth() {
-  const { user, signIn } = useAuth();
+  const { user, signIn, isSigningIn } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -22,14 +22,12 @@ export default function Auth() {
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
     
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     
-    await signIn(email, password);
-    setIsLoading(false);
+    await signIn({ email, password });
   };
 
   const handleRequestAccess = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -124,9 +122,9 @@ export default function Auth() {
                   <Button 
                     type="submit" 
                     className="w-full bg-humanitarian-blue hover:bg-blue-700"
-                    disabled={isLoading}
+                    disabled={isSigningIn}
                   >
-                    {isLoading ? 'Connexion...' : 'Se connecter'}
+                    {isSigningIn ? 'Connexion...' : 'Se connecter'}
                   </Button>
                 </form>
               </TabsContent>

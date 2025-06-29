@@ -42,26 +42,21 @@ const App = () => {
                 <Sonner />
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
-                  
+
                   {/* Protected routes with layout */}
-                  <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                    <Route index element={<Index />} />
-                    <Route path="articles" element={<Articles />} />
-                    <Route path="beneficiaires" element={<Beneficiaries />} />
-                    <Route path="prets" element={<Loans />} />
-                    <Route path="donateurs" element={<Donors />} />
-                    <Route path="rapports" element={<Reports />} />
-                    <Route path="finances" element={<Finances />} />
-                    <Route path="gestion" element={<Management />} />
-                    <Route path="parametres" element={<Settings />} />
-                    <Route
-                      path="admin-requests"
-                      element={
-                        <ProtectedRoute allowedRoles={['superadmin']}>
-                          <AdminRequests />
-                        </ProtectedRoute>
-                      }
-                    />
+                  <Route element={<AppLayout />}>
+                    <Route index element={<ProtectedRoute allowedRoles={['superadmin', 'admin', 'benevole']}><Index /></ProtectedRoute>} />
+                    <Route path="articles" element={<ProtectedRoute allowedRoles={['superadmin', 'admin', 'benevole']}><Articles /></ProtectedRoute>} />
+                    <Route path="beneficiaires" element={<ProtectedRoute allowedRoles={['superadmin', 'admin', 'benevole']}><Beneficiaries /></ProtectedRoute>} />
+                    <Route path="prets" element={<ProtectedRoute allowedRoles={['superadmin', 'admin', 'benevole']}><Loans /></ProtectedRoute>} />
+                    
+                    <Route path="donateurs" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><Donors /></ProtectedRoute>} />
+                    <Route path="rapports" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><Reports /></ProtectedRoute>} />
+                    <Route path="finances" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><Finances /></ProtectedRoute>} />
+                    <Route path="gestion" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><Management /></ProtectedRoute>} />
+                    <Route path="parametres" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><Settings /></ProtectedRoute>} />
+                    
+                    <Route path="admin-requests" element={<ProtectedRoute allowedRoles={['superadmin']}><AdminRequests /></ProtectedRoute>} />
                   </Route>
 
                   <Route path="*" element={<NotFound />} />

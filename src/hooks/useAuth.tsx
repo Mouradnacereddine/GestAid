@@ -1,8 +1,9 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export type UserRole = 'superadmin' | 'admin' | 'benevole';
 
@@ -19,144 +20,119 @@ interface AuthContextType {
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any }>;
-  signOut: () => Promise<void>;
+  signIn: (args: { email: string; password: string }) => void;
+  signUp: (args: { email: string; password: string; firstName: string; lastName: string }) => void;
+  signOut: () => void;
+  isSigningIn: boolean;
+  isSigningUp: boolean;
+  isSigningOut: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const queryClient = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const [loadingInitial, setLoadingInitial] = useState(true);
 
-  // Gère la session et l'état de l'utilisateur
+  const user = session?.user ?? null;
+
   useEffect(() => {
-    setLoading(true);
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      setUser(session?.user ?? null);
-      // Le chargement s'arrêtera dans l'effet suivant, une fois le profil chargé
+      setLoadingInitial(false);
+    });
+
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoadingInitial(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Gère la récupération du profil, qui dépend de l'utilisateur
-  useEffect(() => {
-    // Ne rien faire si l'utilisateur n'est pas encore défini
-    if (!user) {
-      setProfile(null);
-      // Si la session est chargée mais qu'il n'y a pas d'utilisateur, on arrête de charger
-      if (session !== undefined) {
-        setLoading(false);
-      }
-      return;
-    }
-
-    let isMounted = true;
-    const fetchProfile = async () => {
+  const { data: profile, isLoading: isLoadingProfile } = useQuery<Profile | null>({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
       const { data, error } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, role, agency_id')
         .eq('id', user.id)
         .single();
-
-      if (isMounted) {
-        if (error) {
-          console.error('Erreur de récupération du profil:', error);
-          setProfile(null);
-        } else {
-          setProfile(data as Profile);
-        }
-        setLoading(false); // Le chargement est terminé ici
+      if (error) {
+        // Don't throw here, as it could be a new user without a profile yet
+        console.error('Error fetching profile:', error.message);
+        return null;
       }
-    };
+      return data;
+    },
+    enabled: !!user,
+  });
 
-    fetchProfile();
+  const signInMutation = useMutation({
+    mutationFn: async ({ email, password }: { email: string; password: string }) => {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Connexion réussie');
+      queryClient.invalidateQueries(); // Invalidate all queries to refetch user-specific data
+    },
+    onError: (error) => {
+      toast.error('Erreur de connexion', { description: error.message });
+    },
+  });
 
-    return () => {
-      isMounted = false;
-    };
-  }, [user, session]); // Se redéclenche si l'utilisateur ou la session change
-
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Erreur de connexion",
-        description: error.message,
-      });
-    } else {
-      toast({
-        title: "Connexion réussie",
-        description: "Vous êtes maintenant connecté.",
-      });
-    }
-
-    return { error };
-  };
-
-  const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          first_name: firstName,
-          last_name: lastName,
+  const signUpMutation = useMutation({
+    mutationFn: async ({ email, password, firstName, lastName }: { email: string; password: string; firstName: string; lastName: string }) => {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { first_name: firstName, last_name: lastName },
         },
-      },
-    });
-
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Erreur d'inscription",
-        description: error.message,
       });
-    } else {
-      toast({
-        title: "Inscription réussie",
-        description: "Veuillez vérifier votre email pour confirmer votre compte.",
-      });
-    }
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.info('Inscription réussie', { description: 'Veuillez vérifier votre email pour confirmer votre compte.' });
+    },
+    onError: (error) => {
+      toast.error("Erreur d'inscription", { description: error.message });
+    },
+  });
 
-    return { error };
+  const signOutMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Déconnexion réussie');
+      queryClient.setQueryData(['profile', user?.id], null); // Clear profile on sign out
+      queryClient.clear(); // Clear all data
+    },
+    onError: (error) => {
+      toast.error('Erreur de déconnexion', { description: error.message });
+    },
+  });
+
+  const value = {
+    user,
+    profile: profile ?? null,
+    session,
+    loading: loadingInitial || (!!user && isLoadingProfile),
+    signIn: signInMutation.mutate,
+    signUp: signUpMutation.mutate,
+    signOut: signOutMutation.mutate,
+    isSigningIn: signInMutation.isPending,
+    isSigningUp: signUpMutation.isPending,
+    isSigningOut: signOutMutation.isPending,
   };
 
-  const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Erreur de déconnexion",
-        description: error.message,
-      });
-    } else {
-      toast({
-        title: "Déconnexion réussie",
-        description: "Vous êtes maintenant déconnecté.",
-      });
-    }
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, profile, session, loading, signIn, signUp, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

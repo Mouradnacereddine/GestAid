@@ -9,7 +9,15 @@ export function useLoans() {
       const { data, error } = await supabase
         .from('loans')
         .select(`
-          *,
+          id,
+          created_at,
+          loan_date,
+          expected_return_date,
+          actual_return_date,
+          beneficiary_id,
+          notes,
+          loan_number,
+          contract_signed,
           beneficiaries (
             first_name,
             last_name,

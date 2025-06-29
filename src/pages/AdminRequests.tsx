@@ -28,8 +28,6 @@ const fetchAdminRequests = async () => {
 };
 
 export default function AdminRequests() {
-
-
   const queryClient = useQueryClient();
 
   const { data: requests, isLoading, isError, error } = useQuery({
@@ -39,26 +37,45 @@ export default function AdminRequests() {
 
   const approveMutation = useMutation({
     mutationFn: async (requestId: string) => {
-      // Invoke the new Edge Function
       const { data, error } = await supabase.functions.invoke('approve-admin-request', {
         body: { request_id: requestId },
       });
 
-      // The Edge Function returns a detailed error message in the response body
       if (error) {
-        console.error('Function invocation error:', error);
-        // Try to parse the error from the function's response if available
-        const functionError = data?.error || error.message;
-        throw new Error(functionError);
+        // Re-throw the original error object so onError can inspect it
+        throw error;
       }
+      if (data && data.error) {
+        // If the function returns a 200 but with an error message in the body
+        throw new Error(data.error);
+      }
+
+      return data;
     },
     onSuccess: () => {
-      toast.success('La demande a été approuvée.');
+      toast.success('Demande approuvée', {
+        description: "L'utilisateur a été invité et la demande a été marquée comme approuvée.",
+      });
       queryClient.invalidateQueries({ queryKey: ['adminRequests'] });
     },
-    onError: (error) => {
-      console.error("Detailed error from Supabase:", error);
-      toast.error(`L'action a échoué : ${error.message}`);
+    onError: async (error: any) => {
+      console.error('Detailed error from Supabase:', error);
+      let errorMessage = "Une erreur inattendue est survenue.";
+
+      if (error.context && typeof error.context.json === 'function') {
+        try {
+          const functionError = await error.context.json();
+          errorMessage = functionError.error || "La fonction Edge a renvoyé une erreur sans message.";
+        } catch (e) {
+          errorMessage = "Impossible de lire la réponse d'erreur de la fonction Edge.";
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast.error("Erreur lors de l'approbation", {
+        description: errorMessage,
+      });
     },
   });
 
@@ -78,9 +95,11 @@ export default function AdminRequests() {
       toast.success('La demande a été rejetée.');
       queryClient.invalidateQueries({ queryKey: ['adminRequests'] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Detailed error from Supabase:", error);
-      toast.error(`L'action a échoué : ${error.message}`);
+      toast.error('Erreur lors du rejet', {
+        description: error.message,
+      });
     },
   });
 

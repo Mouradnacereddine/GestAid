@@ -65,58 +65,81 @@ serve(async (req) => {
 
     const { email, first_name, last_name, agency_name } = request
 
-    // Invite the user. This is the critical step.
-    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email)
-    if (inviteError) {
-        console.error("Invite error:", inviteError)
-        throw inviteError
-    }
-    const newUserId = inviteData.user.id
+    let userId;
+    let isNewUser = false;
 
+    // 1. Check if user already exists using our RPC function
+    const { data: existingUserId, error: rpcError } = await supabaseAdmin.rpc('get_user_id_by_email', { p_email: email });
+
+    if (rpcError) {
+        console.error('Error checking for existing user via RPC:', rpcError);
+        throw new Error('Failed to check for existing user.');
+    }
+
+    if (existingUserId) {
+        // 2a. User exists, so we'll promote them.
+        userId = existingUserId;
+        console.log(`User with email ${email} already exists. Promoting to admin. User ID: ${userId}`);
+    } else {
+        // 2b. User does not exist, so we invite them.
+        isNewUser = true;
+        console.log(`User with email ${email} does not exist. Inviting...`);
+        const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
+        
+        if (inviteError) {
+            console.error("Invite error:", inviteError);
+            throw inviteError; // Propagate the specific error from Supabase Auth
+        }
+        userId = inviteData.user.id;
+        console.log(`Successfully invited new user. User ID: ${userId}`);
+    }
+
+    // 3. Perform database operations within a transaction-like block
     try {
         // Create or find the agency
-        let agencyId
+        let agencyId;
         const { data: existingAgency } = await supabaseAdmin
             .from('agencies')
             .select('id')
             .eq('name', agency_name)
-            .single()
+            .single();
 
         if (existingAgency) {
-            agencyId = existingAgency.id
+            agencyId = existingAgency.id;
         } else {
             const { data: newAgency, error: newAgencyError } = await supabaseAdmin
                 .from('agencies')
                 .insert({ name: agency_name })
                 .select('id')
-                .single()
-            if (newAgencyError) throw newAgencyError
-            agencyId = newAgency.id
+                .single();
+            if (newAgencyError) throw newAgencyError;
+            agencyId = newAgency.id;
         }
 
-        // The trigger on_auth_user_created has already created a basic profile.
-        // We now need to UPDATE it with the full details from the request.
+        // Upsert the user's profile to handle cases where the profile might not exist
         const { error: profileError } = await supabaseAdmin
             .from('profiles')
-            .update({
+            .upsert({
+                id: userId, // This is the conflict column
                 first_name: request.first_name,
                 last_name: request.last_name,
                 role: 'admin',
                 agency_id: agencyId
-            })
-            .eq('id', newUserId)
+            }, {
+                onConflict: 'id' // Specify the column to check for conflicts
+            });
 
-        if (profileError) throw profileError
+        if (profileError) throw profileError;
 
         // Set the new user as the admin of the agency if no one is assigned
         const { error: updateAgencyError } = await supabaseAdmin
             .from('agencies')
-            .update({ admin_id: newUserId })
+            .update({ admin_id: userId })
             .eq('id', agencyId)
-            .is('admin_id', null)
-        if (updateAgencyError) throw updateAgencyError
+            .is('admin_id', null);
+        if (updateAgencyError) throw updateAgencyError;
 
-        // Update the request status
+        // Update the request status to 'approved'
         const { error: updateRequestError } = await supabaseAdmin
             .from('admin_signup_requests')
             .update({
@@ -124,19 +147,22 @@ serve(async (req) => {
                 reviewed_by: superAdminId,
                 reviewed_at: new Date().toISOString(),
             })
-            .eq('id', request_id)
-        if (updateRequestError) throw updateRequestError
+            .eq('id', request_id);
+        if (updateRequestError) throw updateRequestError;
 
-        console.log(`Processing approval for request_id: ${request_id}`);
+        console.log(`Successfully processed approval for request_id: ${request_id}`);
 
     } catch (dbError) {
-        // If any of the DB operations fail after the user was invited,
-        // we should try to clean up by deleting the invited user.
-        console.error("Database operation failed after user invitation. Attempting to clean up.", dbError)
-        await supabaseAdmin.auth.admin.deleteUser(newUserId)
-        console.log(`Cleanup successful: deleted user ${newUserId}`)
+        // 4. If any DB operations fail, clean up ONLY if we created a new user.
+        if (isNewUser) {
+            console.error("Database operation failed after new user invitation. Attempting to clean up.", dbError);
+            await supabaseAdmin.auth.admin.deleteUser(userId);
+            console.log(`Cleanup successful: deleted user ${userId}`);
+        } else {
+            console.error("Database operation failed while promoting existing user. No auth user cleanup needed.", dbError);
+        }
         // Re-throw the original error to inform the client
-        throw dbError
+        throw dbError;
     }
 
     return new Response(JSON.stringify({ message: `Admin request for ${email} approved.` }), {

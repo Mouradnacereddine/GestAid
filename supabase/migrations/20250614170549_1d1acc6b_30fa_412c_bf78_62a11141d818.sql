@@ -13,6 +13,9 @@ BEGIN
 END;
 $$;
 
+-- S'assurer que la colonne loan_number existe avant de la mettre à jour
+ALTER TABLE public.loans ADD COLUMN IF NOT EXISTS loan_number text UNIQUE;
+
 -- Mettre à jour les prêts existants qui ont un loan_number vide
 UPDATE public.loans 
 SET loan_number = 'PRET-' || LPAD(nextval('loan_seq')::text, 5, '0')

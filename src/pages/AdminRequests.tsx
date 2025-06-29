@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,22 @@ const fetchAdminRequests = async () => {
 };
 
 export default function AdminRequests() {
+  useEffect(() => {
+    const checkClaims = async () => {
+      console.log('Vérification des droits (claims)...');
+      const { data, error } = await supabase.rpc('get_my_claims');
+      if (error) {
+        console.error('Erreur lors de la récupération des droits:', error);
+      } else {
+        console.log('--- CONTENU DU BADGE DE SÉCURITÉ (CLAIMS) ---');
+        console.log(data);
+        console.log('-------------------------------------------');
+      }
+    };
+
+    checkClaims();
+  }, []);
+
   const queryClient = useQueryClient();
 
   const { data: requests, isLoading, isError, error } = useQuery({
@@ -35,18 +52,49 @@ export default function AdminRequests() {
     queryFn: fetchAdminRequests,
   });
 
-  const actionMutation = useMutation({
-    mutationFn: async ({ requestId, action }: { requestId: string; action: 'approve' | 'reject' }) => {
-      const rpcName = action === 'approve' ? 'confirm_admin_request' : 'reject_admin_request';
-      const { error } = await supabase.rpc(rpcName, { request_id: requestId });
-      if (error) throw new Error(error.message);
-      return { action };
+  const approveMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      // Invoke the new Edge Function
+      const { data, error } = await supabase.functions.invoke('approve-admin-request', {
+        body: { request_id: requestId },
+      });
+
+      // The Edge Function returns a detailed error message in the response body
+      if (error) {
+        console.error('Function invocation error:', error);
+        // Try to parse the error from the function's response if available
+        const functionError = data?.error || error.message;
+        throw new Error(functionError);
+      }
     },
-    onSuccess: ({ action }) => {
-      toast.success(`La demande a été ${action === 'approve' ? 'approuvée' : 'rejetée'}.`);
+    onSuccess: () => {
+      toast.success('La demande a été approuvée.');
       queryClient.invalidateQueries({ queryKey: ['adminRequests'] });
     },
     onError: (error) => {
+      console.error("Detailed error from Supabase:", error);
+      toast.error(`L'action a échoué : ${error.message}`);
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      // The reject function does not have permission issues, so we can still use RPC.
+      const { error } = await supabase.rpc('reject_admin_request', { 
+        request_id: requestId,
+      });
+
+      if (error) {
+        console.error('Detailed error from Supabase:', error);
+        throw new Error(error.message);
+      }
+    },
+    onSuccess: () => {
+      toast.success('La demande a été rejetée.');
+      queryClient.invalidateQueries({ queryKey: ['adminRequests'] });
+    },
+    onError: (error) => {
+      console.error("Detailed error from Supabase:", error);
       toast.error(`L'action a échoué : ${error.message}`);
     },
   });
@@ -91,16 +139,17 @@ export default function AdminRequests() {
                     <TableCell className="space-x-2 text-right">
                       <Button 
                         size="sm" 
-                        onClick={() => actionMutation.mutate({ requestId: request.id, action: 'approve' })}
-                        disabled={actionMutation.isPending}
+                        onClick={() => approveMutation.mutate(request.id)}
+                        disabled={approveMutation.isPending || rejectMutation.isPending}
                       >
+                        {approveMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                         Approuver
                       </Button>
                       <Button 
                         size="sm" 
                         variant="destructive" 
-                        onClick={() => actionMutation.mutate({ requestId: request.id, action: 'reject' })}
-                        disabled={actionMutation.isPending}
+                        onClick={() => rejectMutation.mutate(request.id)}
+                        disabled={approveMutation.isPending || rejectMutation.isPending}
                       >
                         Rejeter
                       </Button>

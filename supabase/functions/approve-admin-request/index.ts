@@ -85,12 +85,9 @@ serve(async (req) => {
         isNewUser = true;
         console.log(`User with email ${email} does not exist. Inviting...`);
         const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
-        
-        if (inviteError) {
-            console.error("Invite error:", inviteError);
-            throw inviteError; // Propagate the specific error from Supabase Auth
-        }
-        userId = inviteData.user.id;
+console.log('Résultat inviteUserByEmail:', { inviteData, inviteError });
+if (inviteError) throw inviteError;
+userId = inviteData.user.id;
         console.log(`Successfully invited new user. User ID: ${userId}`);
     }
 

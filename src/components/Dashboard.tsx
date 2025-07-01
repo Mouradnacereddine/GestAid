@@ -10,9 +10,10 @@ export function Dashboard() {
   const { data: articlesCount } = useQuery({
     queryKey: ['articles-count'],
     queryFn: async () => {
-      const { count, error } = await supabase
+      const { count, error, data } = await supabase
         .from('articles')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: false });
+      console.log('Articles data:', data, 'Error:', error, 'Count:', count);
       if (error) throw error;
       return count || 0;
     },

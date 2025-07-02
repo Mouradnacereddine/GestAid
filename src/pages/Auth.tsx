@@ -40,13 +40,14 @@ export default function Auth() {
     const lastName = formData.get('lastName') as string;
     const agencyName = formData.get('agencyName') as string;
 
-    const { error } = await (supabase as any)
+    // On n'essaie plus de créer l'agence côté front, seulement agency_name
+    const { error } = await supabase
       .from('admin_signup_requests')
       .insert({
         first_name: firstName,
         last_name: lastName,
         email,
-        agency_name: agencyName,
+        agency_name: agencyName
       });
 
     if (error) {
@@ -72,6 +73,8 @@ export default function Auth() {
 
     setIsLoading(false);
   };
+
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-humanitarian-blue/10 to-humanitarian-green/10 p-4">

@@ -120,6 +120,7 @@ userId = inviteData.user.id;
                 id: userId, // This is the conflict column
                 first_name: request.first_name,
                 last_name: request.last_name,
+                email: request.email, // Ajout de l'email
                 role: 'admin',
                 agency_id: agencyId
             }, {
@@ -136,13 +137,14 @@ userId = inviteData.user.id;
             .is('admin_id', null);
         if (updateAgencyError) throw updateAgencyError;
 
-        // Update the request status to 'approved'
+        // Update the request status to 'approved' et renseigne agency_id
         const { error: updateRequestError } = await supabaseAdmin
             .from('admin_signup_requests')
             .update({
                 status: 'approved',
                 reviewed_by: superAdminId,
                 reviewed_at: new Date().toISOString(),
+                agency_id: agencyId, // Ajout de l'agency_id lors de l'approbation
             })
             .eq('id', request_id);
         if (updateRequestError) throw updateRequestError;

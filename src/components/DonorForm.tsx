@@ -34,7 +34,16 @@ export function DonorForm({ onClose, donorId }: DonorFormProps) {
   const { data: donors } = useDonors();
   
   const isEditing = !!donorId;
-  const donor = isEditing ? donors?.find(d => d.id === donorId) : null;
+  type Donor = {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    created_at: string;
+    type: 'particulier' | 'entreprise' | 'association';
+  };
+  const donor = isEditing ? (donors?.find(d => d.id === donorId) as Donor) : null;
 
   const form = useForm<DonorFormData>({
     resolver: zodResolver(donorSchema),
@@ -54,7 +63,7 @@ export function DonorForm({ onClose, donorId }: DonorFormProps) {
         email: donor.email || '',
         phone: donor.phone || '',
         address: donor.address || '',
-        type: donor.type as 'particulier' | 'entreprise' | 'association',
+        type: (donor.type as 'particulier' | 'entreprise' | 'association') || 'particulier',
       });
     }
   }, [donor, form]);
@@ -79,7 +88,26 @@ export function DonorForm({ onClose, donorId }: DonorFormProps) {
           throw error;
         }
       } else {
-        const { error } = await supabase.from('donors').insert([donorData]);
+        // Récupérer l'utilisateur connecté
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error("Utilisateur non connecté");
+        }
+        // Récupérer le profil pour l'agency_id
+        const { data: userProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('agency_id')
+          .eq('id', user.id)
+          .single();
+        if (profileError) {
+          throw new Error("Impossible de récupérer le profil utilisateur");
+        }
+        // Ajouter agency_id au payload
+        const donorDataWithAgency = {
+          ...donorData,
+          agency_id: userProfile.agency_id,
+        };
+        const { error } = await supabase.from('donors').insert([donorDataWithAgency]);
         if (error) {
           console.error('Erreur Supabase insert (donateur):', error);
           throw error;

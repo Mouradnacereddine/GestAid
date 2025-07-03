@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
@@ -52,10 +53,11 @@ const AppRoutes = () => {
 
   return (
     <AuthProvider>
-      <div className="min-h-screen w-full">
-        <Toaster />
-        <Sonner />
-        <Routes>
+      <CurrencyProvider>
+        <div className="min-h-screen w-full">
+          <Toaster />
+          <Sonner />
+          <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/update-password" element={<UpdatePassword />} />
 
@@ -78,6 +80,7 @@ const AppRoutes = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
+      </CurrencyProvider>
     </AuthProvider>
   );
 };

@@ -13,6 +13,7 @@ export interface Profile {
   last_name: string | null;
   role: UserRole;
   agency_id: string | null;
+  currency?: string | null; // Ajout pour devise personnalisée
 }
 
 interface AuthContextType {

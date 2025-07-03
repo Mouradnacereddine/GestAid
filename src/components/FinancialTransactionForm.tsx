@@ -20,7 +20,7 @@ interface FinancialTransactionFormProps {
 }
 
 export function FinancialTransactionForm({ onClose }: FinancialTransactionFormProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   
   const form = useForm<TransactionFormData>({
@@ -49,6 +49,7 @@ export function FinancialTransactionForm({ onClose }: FinancialTransactionFormPr
         description: data.description,
         transaction_date: data.transaction_date,
         created_by: user.id,
+        agency_id: profile?.agency_id, // Ajout pour satisfaire la policy RLS
       };
 
       // Ajouter le donateur seulement si spécifié et différent de "none"
@@ -68,7 +69,8 @@ export function FinancialTransactionForm({ onClose }: FinancialTransactionFormPr
             .single();
 
           if (donationError) throw donationError;
-          transactionData.donation_id = donation.id;
+          transactionData.related_entity_id = donation.id;
+          transactionData.related_entity_type = 'donation';
         }
       }
 

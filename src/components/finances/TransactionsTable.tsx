@@ -37,14 +37,11 @@ export function TransactionsTable() {
   const { data: transactions, isLoading } = useQuery({
     queryKey: ['financial_transactions'],
     queryFn: async () => {
+      // Correction : on retire la jointure donations(donors(name)) qui provoquait une erreur 400
+      // Pour afficher le nom du donateur, il faudra faire une jointure manuelle via related_entity_id/related_entity_type
       const { data, error } = await supabase
         .from('financial_transactions')
-        .select(`
-          *,
-          donations(
-            donors(name)
-          )
-        `)
+        .select('*')
         .order('transaction_date', { ascending: false })
         .limit(100);
       

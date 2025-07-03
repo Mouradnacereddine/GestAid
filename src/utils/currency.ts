@@ -3,8 +3,8 @@ export function formatCurrency(amount: number, currency: string): string {
     return new Intl.NumberFormat(undefined, {
       style: 'currency',
       currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2, // Toujours deux décimales
+      maximumFractionDigits: 2,
     }).format(amount);
   } catch {
     // Fallback to simple formatting if currency code is invalid

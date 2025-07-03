@@ -87,8 +87,11 @@ export function LoanTableRow({
       <TableCell>
         {loan.actual_return_date ? formatDate(loan.actual_return_date) : '-'}
       </TableCell>
+      {/* DEBUG: Affiche les données du prêt dans la console pour aider le debug */}
+      
       <TableCell>
         <Badge variant="outline">
+          {/* On affiche le nombre d'articles liés à ce prêt */}
           {loan.loan_articles?.length || 0} article{(loan.loan_articles?.length || 0) > 1 ? 's' : ''}
         </Badge>
       </TableCell>

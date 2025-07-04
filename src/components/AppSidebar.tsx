@@ -73,6 +73,12 @@ const menuItems = [
     allowedRoles: ['superadmin'],
   },
   {
+    title: "Demandes de bénévoles",
+    url: "/volunteer-requests",
+    icon: UserCheck,
+    allowedRoles: ['admin'],
+  },
+  {
     title: "Paramètres",
     url: "/parametres",
     icon: Settings,

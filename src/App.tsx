@@ -22,6 +22,7 @@ import AppLayout from "./components/AppLayout";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import UpdatePassword from "./pages/UpdatePassword";
+import VolunteerRequests from "./pages/VolunteerRequests";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,7 +75,8 @@ const AppRoutes = () => {
             <Route path="gestion" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><Management /></ProtectedRoute>} />
             <Route path="parametres" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><Settings /></ProtectedRoute>} />
             
-            <Route path="admin-requests" element={<ProtectedRoute allowedRoles={['superadmin']}><AdminRequests /></ProtectedRoute>} />
+            <Route path="/admin-requests" element={<ProtectedRoute allowedRoles={['superadmin']}><AdminRequests /></ProtectedRoute>} />
+            <Route path="/volunteer-requests" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><VolunteerRequests /></ProtectedRoute>} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

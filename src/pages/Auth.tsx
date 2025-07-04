@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import VolunteerSignupForm from './VolunteerSignupForm';
 
 export default function Auth() {
   const { user, signIn, isSigningIn } = useAuth();
@@ -96,10 +97,11 @@ export default function Auth() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Se connecter</TabsTrigger>
-                <TabsTrigger value="request">Demander l'accès</TabsTrigger>
-              </TabsList>
+              <TabsList className="grid w-full grid-cols-3">
+  <TabsTrigger value="signin">Se connecter</TabsTrigger>
+  <TabsTrigger value="request-admin">Demande Admin</TabsTrigger>
+  <TabsTrigger value="request-volunteer">Demande Bénévole</TabsTrigger>
+</TabsList>
               
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
@@ -132,56 +134,35 @@ export default function Auth() {
                 </form>
               </TabsContent>
               
-              <TabsContent value="request">
-                <form onSubmit={handleRequestAccess} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">Prénom</Label>
-                      <Input
-                        id="firstName"
-                        name="firstName"
-                        type="text"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Nom</Label>
-                      <Input
-                        id="lastName"
-                        name="lastName"
-                        type="text"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      name="email"
-                      type="email"
-                      placeholder="votre.email@exemple.com"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="agencyName">Nom de l'agence</Label>
-                    <Input
-                      id="agencyName"
-                      name="agencyName"
-                      type="text"
-                      required
-                    />
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-humanitarian-green hover:bg-green-700"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Envoi...' : 'Envoyer la demande'}
-                  </Button>
-                </form>
-              </TabsContent>
+              <TabsContent value="request-admin">
+  <form onSubmit={handleRequestAccess} className="space-y-4">
+    <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="firstName">Prénom</Label>
+        <Input id="firstName" name="firstName" type="text" required />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="lastName">Nom</Label>
+        <Input id="lastName" name="lastName" type="text" required />
+      </div>
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="signup-email">Email</Label>
+      <Input id="signup-email" name="email" type="email" placeholder="votre.email@exemple.com" required />
+    </div>
+    <div className="space-y-2">
+      <Label htmlFor="agencyName">Nom de l'agence</Label>
+      <Input id="agencyName" name="agencyName" type="text" required />
+    </div>
+    <Button type="submit" className="w-full bg-humanitarian-green hover:bg-green-700" disabled={isLoading}>
+      {isLoading ? 'Envoi...' : 'Envoyer la demande'}
+    </Button>
+  </form>
+</TabsContent>
+
+<TabsContent value="request-volunteer">
+  <VolunteerSignupForm />
+</TabsContent>
             </Tabs>
           </CardContent>
         </Card>

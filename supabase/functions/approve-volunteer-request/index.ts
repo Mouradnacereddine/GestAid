@@ -1,29 +1,33 @@
 /// <reference types="deno" />
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js';
 import { corsHeaders } from '../_shared/cors.ts';
+import { load } from 'https://deno.land/std@0.177.0/dotenv/mod.ts';
 
 console.log(`Function "approve-volunteer-request" up and running!`);
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
+serve(async (req: Request): Promise<Response> => {
   try {
+    if (req.method === 'OPTIONS') {
+      return new Response('ok', { headers: corsHeaders });
+    }
+
     const reqClone = req.clone();
     const bodyText = await reqClone.text();
     console.log(`Received request. Method: ${req.method}, Body: ${bodyText}`);
 
+    // Load environment variables
+    const envVars = await load();
+    
     const supabaseAdmin = createClient(
-      process.env.SUPABASE_URL ?? '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
+      envVars.get('SUPABASE_URL') ?? '',
+      envVars.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     const authHeader = req.headers.get('Authorization');
     const supabaseUserClient = createClient(
-      process.env.SUPABASE_URL ?? '',
-      process.env.SUPABASE_ANON_KEY ?? '',
+      envVars.get('SUPABASE_URL') ?? '',
+      envVars.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
           headers: {
@@ -38,7 +42,7 @@ serve(async (req) => {
     if (!user) throw new Error("User not found.");
     const adminId = user.id;
 
-    const { request_id } = await req.json();
+    const { request_id } = await JSON.parse(bodyText);
     if (!request_id) {
       return new Response(JSON.stringify({ error: 'request_id is required' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -59,17 +63,17 @@ serve(async (req) => {
     const { email, first_name, last_name, agency_id } = request;
 
     // Vérifier que l'admin peut approuver la demande pour son agence
-    const { data: adminAgency, error: adminAgencyError } = await supabaseAdmin
+    const { data: adminProfile, error: adminProfileError } = await supabaseAdmin
       .from('profiles')
-      .select('agency_id')
+      .select('agency_id, role')
       .eq('id', adminId)
       .single();
 
-    if (adminAgencyError) throw adminAgencyError;
-    if (!adminAgency) throw new Error('Admin profile not found.');
-    
-    if (agency_id !== adminAgency.agency_id) {
-      throw new Error('You can only approve requests for your own agency.');
+    if (adminProfileError) throw adminProfileError;
+    if (!adminProfile) throw new Error('Admin profile not trouvé.');
+    if (adminProfile.role !== 'admin') throw new Error('Seul un admin peut approuver les demandes.');
+    if (agency_id !== adminProfile.agency_id) {
+      throw new Error('Vous ne pouvez approuver que les demandes de votre agence.');
     }
 
     let userId;
@@ -112,6 +116,52 @@ serve(async (req) => {
 
       if (updateRequestError) throw updateRequestError;
 
+      // Envoyer un email de bienvenue au bénévole
+      const emailTemplate = `
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Bienvenue chez GestAid</title>
+        <style>
+          body { font-family: sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+          .button { display: inline-block; padding: 12px 24px; margin: 20px 0; background-color: #28a745; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; }
+          .footer { margin-top: 20px; font-size: 0.9em; color: #777; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h2>Bienvenue dans l'équipe de bénévoles GestAid !</h2>
+          <p>Bonjour ${first_name},</p>
+          <p>Bonne nouvelle ! Votre demande pour devenir bénévole sur la plateforme GestAid a été approuvée.</p>
+          <p>Pour finaliser la création de votre compte et accéder à votre tableau de bord, il vous suffit de créer votre mot de passe en cliquant sur le bouton ci-dessous :</p>
+          <a href="{{ .ConfirmationURL }}" class="button">Créer mon mot de passe et me connecter</a>
+          <p>Ce lien est unique, sécurisé, et n'est valable que pour une durée limitée.</p>
+          <p>Nous sommes ravis de vous compter parmi nos bénévoles.</p>
+          <div class="footer">
+            <p>L'équipe GestAid</p>
+            <p><a href="{{ .SiteURL }}">{{ .SiteURL }}</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+      `;
+
+      // Send the email using Supabase's email service
+      try {
+        await supabaseAdmin.functions.invoke('send-email', {
+          body: {
+            to: email,
+            subject: 'Bienvenue chez GestAid ! Votre compte bénévole est prêt',
+            html: emailTemplate
+          }
+        });
+      } catch (emailError) {
+        console.error('Error sending email:', emailError);
+      }
+
       console.log(`Successfully processed approval for request_id: ${request_id}`);
     } catch (dbError) {
       if (isNewUser) {
@@ -129,9 +179,14 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400
+    return new Response(JSON.stringify({
+      error: error instanceof Error ? error.message : 'An unexpected error occurred'
+    }), {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      },
+      status: error instanceof Error ? 400 : 500
     });
   }
 });

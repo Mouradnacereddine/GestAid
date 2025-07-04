@@ -12,7 +12,13 @@
     "paths": {
       "*": ["./node_modules/*"]
     },
-    "typeRoots": ["./types"]
+    "typeRoots": ["./types"],
+    "allowImportingTsExtensions": true,
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "isolatedModules": true,
+    "types": ["deno"]
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules"]

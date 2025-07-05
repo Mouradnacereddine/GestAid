@@ -1,38 +1,56 @@
-# Welcome to your Lovable project
+# Lending Aid
 
-## Project info
+Lending Aid est une plateforme de gestion d’agences et de bénévoles, développée pour simplifier la gestion des demandes d’inscription et l’organisation des rôles (superadmin, admin, bénévole).
 
-**URL**: https://lovable.dev/projects/70d21e5b-4abf-4335-b13a-b64e06894f95
+## Fonctionnalités principales
+- Gestion des agences par le superadmin
+- Attribution d’admins aux agences
+- Validation des demandes d’inscription (admin pour bénévoles, superadmin pour admins)
+- Interface moderne basée sur React, TypeScript et Tailwind CSS
 
-## How can I edit this code?
+## Prérequis
+- [Node.js](https://nodejs.org/) >= 18.x
+- [npm](https://www.npmjs.com/) >= 9.x
+- Accès à une instance [Supabase](https://supabase.com/) (voir configuration ci-dessous)
 
-There are several ways of editing your application.
+## Installation
 
-**Use Lovable**
+```bash
+# 1. Cloner le dépôt
+git clone https://github.com/Mouradnacereddine/GestAid.git
+cd GestAid
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/70d21e5b-4abf-4335-b13a-b64e06894f95) and start prompting.
+# 2. Installer les dépendances
+npm install
+```
 
-Changes made via Lovable will be committed automatically to this repo.
+## Configuration
 
-**Use your preferred IDE**
+1. Copier le fichier `.env.example` en `.env` et remplir les variables nécessaires (clés Supabase, etc).
+2. Configurer la base de données Supabase avec les tables et policies adaptées (voir dossier `supabase/`).
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Lancement du projet
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+npm run dev
+```
 
-Follow these steps:
+Le projet sera disponible sur http://localhost:5173 (ou le port affiché dans le terminal).
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## Stack technique
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
+- Supabase
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Contribution
+Les contributions sont les bienvenues ! Merci de créer une issue ou une pull request pour toute amélioration ou bug.
 
-# Step 3: Install the necessary dependencies.
-npm i
+## Licence
+Ce projet est sous licence MIT.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
 
@@ -48,26 +66,3 @@ npm run dev
 - Click on the "Code" button (green button) near the top right.
 - Select the "Codespaces" tab.
 - Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/70d21e5b-4abf-4335-b13a-b64e06894f95) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)

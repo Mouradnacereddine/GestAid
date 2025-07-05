@@ -4,6 +4,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js';
 import { corsHeaders } from '../_shared/cors.ts';
 import { load } from 'https://deno.land/std@0.177.0/dotenv/mod.ts';
 
+// Load environment variables
+const envVars = await load();
+
 console.log(`Function "approve-volunteer-request" up and running!`);
 
 serve(async (req: Request): Promise<Response> => {
@@ -16,18 +19,21 @@ serve(async (req: Request): Promise<Response> => {
     const bodyText = await reqClone.text();
     console.log(`Received request. Method: ${req.method}, Body: ${bodyText}`);
 
-    // Load environment variables
-    const envVars = await load();
-    
+    const env = {
+      SUPABASE_URL: envVars.get('SUPABASE_URL') ?? '',
+      SUPABASE_SERVICE_ROLE_KEY: envVars.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      SUPABASE_ANON_KEY: envVars.get('SUPABASE_ANON_KEY') ?? ''
+    };
+
     const supabaseAdmin = createClient(
-      envVars.get('SUPABASE_URL') ?? '',
-      envVars.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      env.SUPABASE_URL,
+      env.SUPABASE_SERVICE_ROLE_KEY
     );
 
     const authHeader = req.headers.get('Authorization');
     const supabaseUserClient = createClient(
-      envVars.get('SUPABASE_URL') ?? '',
-      envVars.get('SUPABASE_ANON_KEY') ?? '',
+      env.SUPABASE_URL,
+      env.SUPABASE_ANON_KEY,
       {
         global: {
           headers: {
@@ -79,21 +85,39 @@ serve(async (req: Request): Promise<Response> => {
     let userId;
     let isNewUser = false;
 
-    const { data: existingUserId, error: rpcError } = await supabaseAdmin.rpc('get_user_id_by_email', {
-      p_email: email
-    });
+    try {
+      const { data: existingUserId, error: rpcError } = await supabaseAdmin.rpc('get_user_id_by_email', {
+        p_email: email
+      });
 
-    if (rpcError) throw rpcError;
-    if (existingUserId) {
-      userId = existingUserId;
-      console.log(`User with email ${email} already exists. Promoting to volunteer. User ID: ${userId}`);
-    } else {
-      isNewUser = true;
-      console.log(`User with email ${email} does not exist. Inviting...`);
-      const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
-      if (inviteError) throw inviteError;
-      userId = inviteData.user.id;
-      console.log(`Successfully invited new user. User ID: ${userId}`);
+      if (rpcError) {
+        console.error('Error calling get_user_id_by_email RPC:', rpcError);
+        throw rpcError;
+      }
+
+      if (existingUserId) {
+        userId = existingUserId;
+        console.log(`User with email ${email} already exists. Promoting to volunteer. User ID: ${userId}`);
+      } else {
+        isNewUser = true;
+        console.log(`User with email ${email} does not exist. Inviting...`);
+        
+        try {
+          const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
+          if (inviteError) {
+            console.error('Error inviting user:', inviteError);
+            throw inviteError;
+          }
+          userId = inviteData.user.id;
+          console.log(`Successfully invited new user. User ID: ${userId}`);
+        } catch (inviteErr: any) {
+          console.error('Detailed error in invite:', inviteErr);
+          throw new Error('Failed to invite user: ' + inviteErr.message);
+        }
+      }
+    } catch (err: any) {
+      console.error('Detailed error in user check:', err);
+      throw new Error('Failed to find or create user: ' + err.message);
     }
 
     try {

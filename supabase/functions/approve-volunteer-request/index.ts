@@ -1,15 +1,11 @@
 /// <reference types="deno" />
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js';
 import { corsHeaders } from '../_shared/cors.ts';
-import { load } from 'https://deno.land/std@0.177.0/dotenv/mod.ts';
-
-// Load environment variables
-const envVars = await load();
 
 console.log(`Function "approve-volunteer-request" up and running!`);
 
-serve(async (req: Request): Promise<Response> => {
+serve(async (req) => {
   try {
     if (req.method === 'OPTIONS') {
       return new Response('ok', { headers: corsHeaders });
@@ -20,28 +16,33 @@ serve(async (req: Request): Promise<Response> => {
     console.log(`Received request. Method: ${req.method}, Body: ${bodyText}`);
 
     const env = {
-      SUPABASE_URL: envVars.get('SUPABASE_URL') ?? '',
-      SUPABASE_SERVICE_ROLE_KEY: envVars.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      SUPABASE_ANON_KEY: envVars.get('SUPABASE_ANON_KEY') ?? ''
+      SUPABASE_URL: Deno.env.get('SUPABASE_URL') ?? '',
+      SUPABASE_SERVICE_ROLE_KEY: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      SUPABASE_ANON_KEY: Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     };
 
-    const supabaseAdmin = createClient(
-      env.SUPABASE_URL,
-      env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    // Vérifier que toutes les variables d'environnement sont définies
+    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY || !env.SUPABASE_ANON_KEY) {
+      return new Response(JSON.stringify({
+        error: 'Missing required environment variables'
+      }), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
+        status: 500
+      });
+    }
 
+    const supabaseAdmin = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
     const authHeader = req.headers.get('Authorization');
-    const supabaseUserClient = createClient(
-      env.SUPABASE_URL,
-      env.SUPABASE_ANON_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: authHeader
-          }
+    const supabaseUserClient = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+      global: {
+        headers: {
+          Authorization: authHeader
         }
       }
-    );
+    });
 
     const { data: { user }, error: userError } = await supabaseUserClient.auth.getUser();
     if (userError) throw userError;
@@ -50,8 +51,13 @@ serve(async (req: Request): Promise<Response> => {
 
     const { request_id } = await JSON.parse(bodyText);
     if (!request_id) {
-      return new Response(JSON.stringify({ error: 'request_id is required' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      return new Response(JSON.stringify({
+        error: 'request_id is required'
+      }), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
         status: 400
       });
     }
@@ -101,7 +107,7 @@ serve(async (req: Request): Promise<Response> => {
       } else {
         isNewUser = true;
         console.log(`User with email ${email} does not exist. Inviting...`);
-        
+
         try {
           const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
           if (inviteError) {
@@ -110,12 +116,12 @@ serve(async (req: Request): Promise<Response> => {
           }
           userId = inviteData.user.id;
           console.log(`Successfully invited new user. User ID: ${userId}`);
-        } catch (inviteErr: any) {
+        } catch (inviteErr) {
           console.error('Detailed error in invite:', inviteErr);
           throw new Error('Failed to invite user: ' + inviteErr.message);
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Detailed error in user check:', err);
       throw new Error('Failed to find or create user: ' + err.message);
     }
@@ -133,14 +139,12 @@ serve(async (req: Request): Promise<Response> => {
       if (profileError) throw profileError;
 
       const { error: updateRequestError } = await supabaseAdmin.from('volunteer_signup_requests').update({
-        status: 'approved',
-        reviewed_by: adminId,
-        reviewed_at: new Date().toISOString()
+        status: 'approved'
       }).eq('id', request_id);
 
       if (updateRequestError) throw updateRequestError;
 
-      // Envoyer un email de bienvenue au bénévole
+      // Envoyer un email de bienvenue
       const emailTemplate = `
       <!DOCTYPE html>
       <html lang="fr">
@@ -173,7 +177,6 @@ serve(async (req: Request): Promise<Response> => {
       </html>
       `;
 
-      // Send the email using Supabase's email service
       try {
         await supabaseAdmin.functions.invoke('send-email', {
           body: {

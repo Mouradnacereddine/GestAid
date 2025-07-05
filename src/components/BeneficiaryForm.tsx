@@ -91,14 +91,14 @@ export function BeneficiaryForm({ onClose, beneficiaryId }: BeneficiaryFormProps
   };
 
   // Afficher un message si l'utilisateur n'a pas les droits nécessaires
-  if (userProfile && !['admin', 'gestionnaire'].includes(userProfile.role)) {
+  if (userProfile && !['admin', 'gestionnaire', 'benevole'].includes(userProfile.role)) {
     return (
       <Alert variant="destructive" className="mt-4">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Accès Refusé</AlertTitle>
         <AlertDescription>
           Vous n'avez pas les permissions nécessaires pour ajouter des bénéficiaires.
-          Seuls les administrateurs et gestionnaires peuvent effectuer cette action.
+          Seuls les administrateurs, gestionnaires et bénévoles peuvent effectuer cette action.
           <p className="mt-2">Votre rôle actuel: <strong>{userProfile.role}</strong></p>
         </AlertDescription>
       </Alert>

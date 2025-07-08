@@ -46,8 +46,13 @@ export function TransactionTypeAmount({ control }: TransactionTypeAmountProps) {
                 type="number"
                 step="0.01"
                 placeholder="0.00"
-                {...field}
-                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                value={field.value === 0 ? '' : field.value}
+                onChange={e => {
+                  const val = e.target.value;
+                  // Si l'utilisateur efface tout, on passe une chaîne vide
+                  if (val === '') field.onChange('');
+                  else field.onChange(parseFloat(val));
+                }}
               />
             </FormControl>
             <FormMessage />

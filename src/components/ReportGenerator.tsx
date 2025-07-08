@@ -12,11 +12,17 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { toast } from 'sonner';
 
+import { ReportFormatSelector } from '@/components/reports/ReportFormatSelector';
+import { exportReportData } from '@/utils/reportExport';
+
+type ExportFormat = 'french' | 'international';
+
 export function ReportGenerator() {
   const [reportType, setReportType] = useState('');
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [showFromCalendar, setShowFromCalendar] = useState(false);
   const [showToCalendar, setShowToCalendar] = useState(false);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('french');
 
   // Fetch data for report statistics
   const { data: stats } = useQuery({
@@ -39,15 +45,22 @@ export function ReportGenerator() {
   });
 
   const reportTypes = [
-    { id: 'articles', name: 'Rapport des Articles', description: 'État du stock et des articles' },
-    { id: 'loans', name: 'Rapport des Prêts', description: 'Historique et statistiques des prêts' },
-    { id: 'beneficiaries', name: 'Rapport des Bénéficiaires', description: 'Liste et activité des bénéficiaires' },
-    { id: 'financial', name: 'Rapport Financier', description: 'Transactions et bilans financiers' },
-    { id: 'activity', name: 'Rapport d\'Activité', description: 'Aperçu global de l\'activité' },
-    { id: 'donors', name: 'Rapport des Donateurs', description: 'Statistiques des donations' }
-  ];
+  { id: 'articles', name: 'Rapport des Articles', description: 'État du stock et des articles' },
+  { id: 'loans', name: 'Rapport des Prêts', description: 'Historique et statistiques des prêts' },
+  { id: 'beneficiaries', name: 'Rapport des Bénéficiaires', description: 'Liste et activité des bénéficiaires' },
+  { id: 'financial', name: 'Rapport Financier', description: 'Transactions et bilans financiers' },
+  { id: 'activity', name: 'Rapport d\'Activité', description: 'Aperçu global de l\'activité' },
+  { id: 'donors', name: 'Rapport des Donateurs', description: 'Statistiques des donations' }
+];
 
-  const generateReport = async () => {
+// Fonction de réinitialisation
+const resetReport = () => {
+  setReportType('');
+  setDateRange({});
+  setExportFormat('french');
+};
+
+  const generateReport = async (exportType: 'csv' | 'json' = 'csv') => {
     if (!reportType) {
       toast.error('Veuillez sélectionner un type de rapport');
       return;
@@ -59,6 +72,7 @@ export function ReportGenerator() {
     try {
       let reportData: any = {};
       let fileName = '';
+      let isCSV = exportType === 'csv';
 
       switch (reportType) {
         case 'articles':
@@ -76,11 +90,11 @@ export function ReportGenerator() {
             period: `${fromDate || 'Début'} au ${toDate || 'Fin'}`,
             totalArticles: articles?.length || 0,
             availableArticles: articles?.filter(a => a.status === 'disponible').length || 0,
-            loanedArticles: articles?.filter(a => a.status === 'en_pret').length || 0,
+            loanedArticles: articles?.filter(a => a.status === 'emprunte').length || 0,
             maintenanceArticles: articles?.filter(a => a.status === 'en_maintenance').length || 0,
             articles: articles || []
           };
-          fileName = `rapport-articles-${Date.now()}.json`;
+          fileName = `rapport-articles-${Date.now()}`;
           break;
 
         case 'loans':
@@ -102,7 +116,7 @@ export function ReportGenerator() {
             returnedLoans: loans?.filter(l => l.actual_return_date).length || 0,
             loans: loans || []
           };
-          fileName = `rapport-prets-${Date.now()}.json`;
+          fileName = `rapport-prets-${Date.now()}`;
           break;
 
         case 'beneficiaries':
@@ -121,7 +135,7 @@ export function ReportGenerator() {
             ).length || 0,
             beneficiaries: beneficiaries || []
           };
-          fileName = `rapport-beneficiaires-${Date.now()}.json`;
+          fileName = `rapport-beneficiaires-${Date.now()}`;
           break;
 
         case 'financial':
@@ -131,8 +145,8 @@ export function ReportGenerator() {
             .gte('transaction_date', fromDate || '1900-01-01')
             .lte('transaction_date', toDate || '2099-12-31');
           
-          const totalRevenue = transactions?.filter(t => t.type === 'entree').reduce((sum, t) => sum + Number(t.amount), 0) || 0;
-          const totalExpenses = transactions?.filter(t => t.type === 'sortie').reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+          const totalRevenue = transactions?.filter(t => t.type === 'don').reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+          const totalExpenses = transactions?.filter(t => t.type === 'depense').reduce((sum, t) => sum + Number(t.amount), 0) || 0;
           
           reportData = {
             type: 'Rapport Financier',
@@ -143,7 +157,7 @@ export function ReportGenerator() {
             balance: totalRevenue - totalExpenses,
             transactions: transactions || []
           };
-          fileName = `rapport-financier-${Date.now()}.json`;
+          fileName = `rapport-financier-${Date.now()}`;
           break;
 
         case 'activity':
@@ -156,7 +170,7 @@ export function ReportGenerator() {
             totalTransactions: stats?.transactions.length || 0,
             generatedAt: new Date().toISOString()
           };
-          fileName = `rapport-activite-${Date.now()}.json`;
+          fileName = `rapport-activite-${Date.now()}`;
           break;
 
         case 'donors':
@@ -174,23 +188,27 @@ export function ReportGenerator() {
             totalDonations: donors?.reduce((sum, d) => sum + (d.donations?.length || 0), 0) || 0,
             donors: donors || []
           };
-          fileName = `rapport-donateurs-${Date.now()}.json`;
+          fileName = `rapport-donateurs-${Date.now()}`;
           break;
       }
 
-      // Create and download the report
-      const content = JSON.stringify(reportData, null, 2);
-      const blob = new Blob([content], { type: 'application/json' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast.success('Rapport généré et téléchargé avec succès');
+      // Génération du rapport selon le format choisi
+      if (isCSV) {
+        exportReportData(reportData, exportFormat);
+        toast.success('Rapport CSV généré et téléchargé avec succès');
+      } else {
+        const content = JSON.stringify(reportData, null, 2);
+        const blob = new Blob([content], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName + '.json';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success('Rapport JSON généré et téléchargé avec succès');
+      }
       
     } catch (error) {
       console.error('Erreur lors de la génération du rapport:', error);
@@ -228,6 +246,10 @@ export function ReportGenerator() {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Export Format Selection */}
+        <ReportFormatSelector exportFormat={exportFormat} onExportFormatChange={setExportFormat} />
+        
 
         {/* Date Range Selection */}
         <div className="space-y-2">
@@ -278,6 +300,18 @@ export function ReportGenerator() {
           </div>
         </div>
 
+        {/* Export Button */}
+        <div className="mt-4">
+          <Button 
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+            onClick={() => generateReport('csv')}
+            disabled={!reportType}
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Générer et Télécharger ({exportFormat === 'french' ? 'CSV Français' : 'CSV International'})
+          </Button>
+        </div>
+
         {/* Report Preview */}
         {selectedReportType && (
           <div className="bg-gray-50 p-4 rounded-lg">
@@ -316,23 +350,10 @@ export function ReportGenerator() {
           </div>
         )}
 
-        {/* Generate Report Button */}
-        <div className="flex gap-2">
+        <div className="flex justify-end mt-4">
           <Button 
-            onClick={generateReport}
-            className="bg-humanitarian-blue hover:bg-blue-700 flex-1"
-            disabled={!reportType}
-          >
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Générer le Rapport
-          </Button>
-          
-          <Button 
-            variant="outline"
-            onClick={() => {
-              setReportType('');
-              setDateRange({});
-            }}
+            className="bg-gray-100 hover:bg-gray-200 text-gray-800"
+            onClick={() => resetReport()}
           >
             Réinitialiser
           </Button>

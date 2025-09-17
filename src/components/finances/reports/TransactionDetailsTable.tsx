@@ -14,6 +14,7 @@ interface Transaction {
   category?: string;
   description?: string;
   transaction_date: string;
+  donations?: { donors?: { name?: string } };
 }
 
 interface TransactionDetailsTableProps {
@@ -58,6 +59,7 @@ export function TransactionDetailsTable({ transactions }: TransactionDetailsTabl
                 <TableHead>Date</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Catégorie</TableHead>
+                <TableHead>Donateur</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="text-right">Montant</TableHead>
                 <TableHead className="text-right">Débit</TableHead>
@@ -75,12 +77,14 @@ export function TransactionDetailsTable({ transactions }: TransactionDetailsTabl
                   const debit = transaction.type === 'sortie' ? amount : 0;
                   const credit = transaction.type === 'entree' ? amount : 0;
                   const reference = `REF-${transaction.id.slice(0, 8).toUpperCase()}`;
+                  const donorName = transaction.type === 'entree' ? (transaction as any)?.donations?.donors?.name || '' : '';
                   
                   console.log(`TransactionDetailsTable - Row ${index + 1} data:`, {
                     reference,
                     date: formattedDate,
                     type: typeLabel,
                     category: transaction.category,
+                    donor: donorName,
                     description: transaction.description,
                     amount,
                     debit,
@@ -101,6 +105,7 @@ export function TransactionDetailsTable({ transactions }: TransactionDetailsTabl
                         </span>
                       </TableCell>
                       <TableCell>{transaction.category || 'Non catégorisé'}</TableCell>
+                      <TableCell>{donorName || '-'}</TableCell>
                       <TableCell className="max-w-xs truncate">{transaction.description || '-'}</TableCell>
                       <TableCell className={`text-right font-semibold ${
                         transaction.type === 'entree' ? 'text-green-600' : 'text-red-600'
@@ -119,7 +124,7 @@ export function TransactionDetailsTable({ transactions }: TransactionDetailsTabl
                   console.error(`Error rendering transaction ${index + 1}:`, error, transaction);
                   return (
                     <TableRow key={transaction.id || `error-${index}`}>
-                      <TableCell colSpan={8} className="text-center text-red-500">
+                      <TableCell colSpan={9} className="text-center text-red-500">
                         Erreur d'affichage de la transaction
                       </TableCell>
                     </TableRow>

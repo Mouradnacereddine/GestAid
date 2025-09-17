@@ -17,7 +17,8 @@ interface Transaction {
   category: string;
   description?: string;
   transaction_date: string;
-  donation_id?: string;
+  related_entity_id?: string | null;
+  related_entity_type?: string | null;
   donations?: {
     donors: {
       name: string;
@@ -37,8 +38,7 @@ export function TransactionsTable() {
   const { data: transactions, isLoading } = useQuery({
     queryKey: ['financial_transactions'],
     queryFn: async () => {
-      // Correction : on retire la jointure donations(donors(name)) qui provoquait une erreur 400
-      // Pour afficher le nom du donateur, il faudra faire une jointure manuelle via related_entity_id/related_entity_type
+      // Récupérer les transactions de base
       const { data, error } = await supabase
         .from('financial_transactions')
         .select('*')
@@ -46,7 +46,43 @@ export function TransactionsTable() {
         .limit(100);
       
       if (error) throw error;
-      return data || [];
+      const txs = data || [];
+
+      // Construire la liste des donations liées aux recettes
+      const donationIds = txs
+        .filter((t: any) => t.type === 'entree' && t.related_entity_type === 'donation' && !!t.related_entity_id)
+        .map((t: any) => t.related_entity_id as string);
+
+      if (donationIds.length === 0) {
+        return txs;
+      }
+
+      // Récupérer les donateurs pour ces donations
+      const { data: donationsData, error: donationsError } = await supabase
+        .from('donations')
+        .select('id, donor_id, donors(name)')
+        .in('id', donationIds);
+
+      if (donationsError) throw donationsError;
+
+      const donationMap = new Map<string, any>();
+      (donationsData || []).forEach((d: any) => donationMap.set(d.id, d));
+
+      // Joindre côté client pour enrichir les transactions avec le nom du donateur
+      const enriched = txs.map((t: any) => {
+        if (t.type === 'entree' && t.related_entity_type === 'donation' && t.related_entity_id) {
+          const d = donationMap.get(t.related_entity_id);
+          if (d) {
+            return {
+              ...t,
+              donations: { donors: { name: d.donors?.name || '' } },
+            };
+          }
+        }
+        return t;
+      });
+
+      return enriched;
     },
   });
 

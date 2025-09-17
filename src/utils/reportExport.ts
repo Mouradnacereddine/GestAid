@@ -182,8 +182,8 @@ function generateFinancialCSV(reportData: any, config: any, isInternational: boo
   
   // En-têtes
   const headers = isInternational 
-    ? ['Date', 'Type', 'Category', 'Description', 'Amount', 'Debit', 'Credit']
-    : ['Date', 'Type', 'Catégorie', 'Description', 'Montant', 'Débit', 'Crédit'];
+    ? ['Date', 'Type', 'Category', 'Donor', 'Description', 'Amount', 'Debit', 'Credit']
+    : ['Date', 'Type', 'Catégorie', 'Donateur', 'Description', 'Montant', 'Débit', 'Crédit'];
     
   csvRows.push(headers.join(config.separator));
 
@@ -196,10 +196,13 @@ function generateFinancialCSV(reportData: any, config: any, isInternational: boo
     const debit = transaction.type === 'sortie' ? amount : '';
     const credit = transaction.type === 'entree' ? amount : '';
     
+    const donorName = transaction.type === 'entree' ? (transaction as any)?.donations?.donors?.name || '' : '';
+
     const row = [
       transaction.transaction_date ? format(new Date(transaction.transaction_date), 'dd/MM/yyyy') : '',
       typeLabel,
       transaction.category || (isInternational ? 'Uncategorized' : 'Non catégorisé'),
+      donorName,
       transaction.description || '',
       formatAmount(amount, config),
       formatAmount(debit, config),

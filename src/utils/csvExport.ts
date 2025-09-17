@@ -10,6 +10,7 @@ interface Transaction {
   category?: string;
   description?: string;
   amount: number;
+  donations?: { donors?: { name?: string } };
 }
 
 export function exportAccountingData(transactions: Transaction[], exportFormat: ExportFormat) {
@@ -46,8 +47,8 @@ export function exportAccountingData(transactions: Transaction[], exportFormat: 
   
   // En-têtes avec colonne Référence
   const headers = isInternational 
-    ? ['Reference', 'Date', 'Type', 'Category', 'Description', 'Amount', 'Debit', 'Credit']
-    : ['Référence', 'Date', 'Type', 'Catégorie', 'Description', 'Montant', 'Débit', 'Crédit'];
+    ? ['Reference', 'Date', 'Type', 'Category', 'Donor', 'Description', 'Amount', 'Debit', 'Credit']
+    : ['Référence', 'Date', 'Type', 'Catégorie', 'Donateur', 'Description', 'Montant', 'Débit', 'Crédit'];
     
   csvRows.push(headers.join(config.separator));
   console.log('Headers:', headers);
@@ -73,11 +74,14 @@ export function exportAccountingData(transactions: Transaction[], exportFormat: 
         return numValue.toFixed(2).replace('.', config.decimalSeparator);
       };
 
+      const donorName = transaction.type === 'entree' ? (transaction as any)?.donations?.donors?.name || '' : '';
+
       const rowData = [
         reference,
         formattedDate,
         typeLabel,
         transaction.category || (isInternational ? 'Uncategorized' : 'Non catégorisé'),
+        donorName,
         transaction.description || '',
         formatAmount(amount),
         formatAmount(debit),

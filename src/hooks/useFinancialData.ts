@@ -34,7 +34,40 @@ export function useFinancialData(dateRange: { from: Date; to: Date }) {
         });
       });
       
-      return data || [];
+      const txs = data || [];
+
+      // Enrichir avec le nom du donateur pour les recettes liées à une donation
+      const donationIds = Array.from(new Set(
+        txs
+          .filter((t: any) => t.type === 'entree' && t.related_entity_type === 'donation' && !!t.related_entity_id)
+          .map((t: any) => t.related_entity_id as string)
+      ));
+
+      if (donationIds.length === 0) {
+        return txs;
+      }
+
+      const { data: donationsData, error: donationsError } = await supabase
+        .from('donations')
+        .select('id, donors(name)')
+        .in('id', donationIds);
+
+      if (donationsError) throw donationsError;
+
+      const donationMap = new Map<string, any>();
+      (donationsData || []).forEach((d: any) => donationMap.set(d.id, d));
+
+      const enriched = txs.map((t: any) => {
+        if (t.type === 'entree' && t.related_entity_type === 'donation' && t.related_entity_id) {
+          const d = donationMap.get(t.related_entity_id);
+          if (d) {
+            return { ...t, donations: { donors: { name: d.donors?.name || '' } } };
+          }
+        }
+        return t;
+      });
+
+      return enriched;
     },
     // Assurer que les données ne sont pas mises en cache de manière incorrecte
     staleTime: 30000, // 30 secondes

@@ -22,12 +22,8 @@ interface Transaction {
   category: string;
   description?: string;
   transaction_date: string;
-  donation_id?: string;
-  donations?: {
-    donors: {
-      name: string;
-    };
-  };
+  related_entity_id?: string | null;
+  related_entity_type?: string | null;
 }
 
 interface EditTransactionFormProps {
@@ -39,22 +35,22 @@ export function EditTransactionForm({ transaction, onClose }: EditTransactionFor
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch the donor information if there's a donation_id
+// Récupérer le donateur lié si la transaction référence une donation
   const { data: donationData } = useQuery({
-    queryKey: ['donation', transaction.donation_id],
+    queryKey: ['donation', transaction.related_entity_id],
     queryFn: async () => {
-      if (!transaction.donation_id) return null;
+      if (!transaction.related_entity_id || transaction.related_entity_type !== 'donation') return null;
       
       const { data, error } = await supabase
         .from('donations')
-        .select('donor_id')
-        .eq('id', transaction.donation_id)
+        .select('id, donor_id')
+        .eq('id', transaction.related_entity_id)
         .single();
       
       if (error) throw error;
       return data;
     },
-    enabled: !!transaction.donation_id,
+    enabled: !!transaction.related_entity_id && transaction.related_entity_type === 'donation',
   });
   
   const form = useForm<TransactionFormData>({
@@ -98,36 +94,59 @@ export function EditTransactionForm({ transaction, onClose }: EditTransactionFor
         transaction_date: data.transaction_date,
       };
 
-      // Handle donor changes for income transactions
-      if (data.type === 'entree' && data.donor_id !== donationData?.donor_id) {
-        if (data.donor_id && data.donor_id.trim() !== '' && data.donor_id !== 'none') {
-          // Create new donation if donor is selected
-          const { data: donation, error: donationError } = await supabase
-            .from('donations')
-            .insert({
-              donor_id: data.donor_id,
-              amount: data.amount,
-              donation_date: data.transaction_date,
-              donation_type: 'financier',
-              description: data.description || `Transaction financière - ${data.category}`,
-            })
-            .select()
-            .single();
+      // Gestion du donateur pour les recettes
+      if (data.type === 'entree') {
+        const hasExistingDonation = !!transaction.related_entity_id && transaction.related_entity_type === 'donation';
+        const donorSelected = data.donor_id && data.donor_id.trim() !== '' && data.donor_id !== 'none';
 
-          if (donationError) throw donationError;
-          updateData.donation_id = donation.id;
-        } else {
-          // Remove donor association
-          updateData.donation_id = null;
-        }
+        if (donorSelected) {
+          if (hasExistingDonation) {
+            // Mettre à jour la donation existante
+            const { error: donationUpdateError } = await supabase
+              .from('donations')
+              .update({
+                donor_id: data.donor_id,
+                amount: data.amount,
+                donation_date: data.transaction_date,
+                donation_type: 'financier',
+                description: data.description || `Transaction financière - ${data.category}`,
+              })
+              .eq('id', transaction.related_entity_id);
+            if (donationUpdateError) throw donationUpdateError;
 
-        // Delete old donation if it exists
-        if (transaction.donation_id) {
+            updateData.related_entity_id = transaction.related_entity_id;
+            updateData.related_entity_type = 'donation';
+          } else {
+            // Créer une nouvelle donation et la lier à la transaction
+            const { data: donation, error: donationError } = await supabase
+              .from('donations')
+              .insert({
+                donor_id: data.donor_id,
+                amount: data.amount,
+                donation_date: data.transaction_date,
+                donation_type: 'financier',
+                description: data.description || `Transaction financière - ${data.category}`,
+              })
+              .select()
+              .single();
+            if (donationError) throw donationError;
+
+            updateData.related_entity_id = donation.id;
+            updateData.related_entity_type = 'donation';
+          }
+        } else if (hasExistingDonation) {
+          // Aucun donateur sélectionné: supprimer la donation liée et détacher
           await supabase
             .from('donations')
             .delete()
-            .eq('id', transaction.donation_id);
+            .eq('id', transaction.related_entity_id);
+          updateData.related_entity_id = null;
+          updateData.related_entity_type = null;
         }
+      } else {
+        // Dépense: s'assurer qu'il n'y a pas d'association de donation
+        updateData.related_entity_id = null;
+        updateData.related_entity_type = null;
       }
 
       const { error } = await supabase

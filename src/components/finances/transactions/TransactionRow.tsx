@@ -14,7 +14,8 @@ interface Transaction {
   category: string;
   description?: string;
   transaction_date: string;
-  donation_id?: string;
+  related_entity_id?: string | null;
+  related_entity_type?: string | null;
   donations?: {
     donors: {
       name: string;
@@ -65,12 +66,11 @@ export function TransactionRow({ transaction, onDelete, onEdit }: TransactionRow
       </TableCell>
       <TableCell>{transaction.category}</TableCell>
       {/* Colonne Donateur - seulement visible pour les recettes */}
-      {transaction.type === 'entree' && (
+      {transaction.type === 'entree' ? (
         <TableCell>
           {transaction.donations?.donors?.name || '-'}
         </TableCell>
-      )}
-      {transaction.type === 'sortie' && (
+      ) : (
         <TableCell>-</TableCell>
       )}
       <TableCell className="max-w-xs truncate">

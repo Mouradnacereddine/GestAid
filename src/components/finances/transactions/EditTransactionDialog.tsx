@@ -10,12 +10,8 @@ interface Transaction {
   category: string;
   description?: string;
   transaction_date: string;
-  donation_id?: string;
-  donations?: {
-    donors: {
-      name: string;
-    };
-  };
+  related_entity_id?: string | null;
+  related_entity_type?: string | null;
 }
 
 interface EditTransactionDialogProps {

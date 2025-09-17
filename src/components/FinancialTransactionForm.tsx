@@ -52,26 +52,23 @@ export function FinancialTransactionForm({ onClose }: FinancialTransactionFormPr
         agency_id: profile?.agency_id, // Ajout pour satisfaire la policy RLS
       };
 
-      // Ajouter le donateur seulement si spécifié et différent de "none"
-      if (data.donor_id && data.donor_id.trim() !== '' && data.donor_id !== 'none') {
-        // Créer d'abord une donation liée si c'est une recette
-        if (data.type === 'entree') {
-          const { data: donation, error: donationError } = await supabase
-            .from('donations')
-            .insert({
-              donor_id: data.donor_id,
-              amount: data.amount,
-              donation_date: data.transaction_date,
-              donation_type: 'financier',
-              description: data.description || `Transaction financière - ${data.category}`,
-            })
-            .select()
-            .single();
+      // Associer un donateur uniquement pour les recettes et si un donateur est choisi
+      if (data.type === 'entree' && data.donor_id && data.donor_id.trim() !== '' && data.donor_id !== 'none') {
+        const { data: donation, error: donationError } = await supabase
+          .from('donations')
+          .insert({
+            donor_id: data.donor_id,
+            amount: data.amount,
+            donation_date: data.transaction_date,
+            donation_type: 'financier',
+            description: data.description || `Transaction financière - ${data.category}`,
+          })
+          .select()
+          .single();
 
-          if (donationError) throw donationError;
-          transactionData.related_entity_id = donation.id;
-          transactionData.related_entity_type = 'donation';
-        }
+        if (donationError) throw donationError;
+        transactionData.related_entity_id = donation.id;
+        transactionData.related_entity_type = 'donation';
       }
 
       const { error } = await supabase.from('financial_transactions').insert(transactionData);

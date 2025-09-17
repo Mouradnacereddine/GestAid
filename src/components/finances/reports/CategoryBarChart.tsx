@@ -28,9 +28,10 @@ export function CategoryBarChart({ data }: CategoryBarChartProps) {
           }}
           className="h-[400px]"
         >
-            <BarChart data={data} layout="horizontal">
+            {/* Use vertical layout so categories are on the Y axis */}
+            <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16, top: 8, bottom: 8 }}>
               <XAxis type="number" />
-              <YAxis type="category" dataKey="category" width={120} />
+              <YAxis type="category" dataKey="category" width={160} />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Bar dataKey="recettes" fill="#22c55e" />
               <Bar dataKey="depenses" fill="#ef4444" />

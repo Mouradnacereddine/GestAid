@@ -7,7 +7,11 @@ export function useArticles() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('articles')
-        .select('*')
+        .select(`
+          *,
+          categories(name),
+          donors(name)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) {

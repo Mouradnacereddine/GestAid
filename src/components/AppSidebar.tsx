@@ -76,7 +76,7 @@ const menuItems = [
     title: "Demandes de bénévoles",
     url: "/volunteer-requests",
     icon: UserCheck,
-    allowedRoles: ['superadmin', 'admin'],
+    allowedRoles: ['admin'],
   },
   {
     title: "Paramètres",

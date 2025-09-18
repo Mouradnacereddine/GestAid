@@ -76,7 +76,7 @@ const AppRoutes = () => {
             <Route path="parametres" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><Settings /></ProtectedRoute>} />
             
             <Route path="/admin-requests" element={<ProtectedRoute allowedRoles={['superadmin']}><AdminRequests /></ProtectedRoute>} />
-            <Route path="/volunteer-requests" element={<ProtectedRoute allowedRoles={['superadmin', 'admin']}><VolunteerRequests /></ProtectedRoute>} />
+            <Route path="/volunteer-requests" element={<ProtectedRoute allowedRoles={['admin']}><VolunteerRequests /></ProtectedRoute>} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

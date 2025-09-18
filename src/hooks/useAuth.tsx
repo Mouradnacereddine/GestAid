@@ -107,20 +107,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOutMutation = useMutation({
     mutationFn: async () => {
-      // Always clear local session first so the user is logged out from the app
-      await supabase.auth.signOut({ scope: 'local' });
-
-      // Best-effort global revoke. Some deployments may return 403; ignore it.
+      // 1) If we have a session, try a GLOBAL sign-out first to revoke tokens server-side
       try {
-        const { error } = await supabase.auth.signOut({ scope: 'global' });
-        if (error) {
-          const msg = String(error.message || '').toLowerCase();
-          if (!msg.includes('forbidden') && !msg.includes('403')) {
-            throw error;
+        const { data: sessionRes } = await supabase.auth.getSession();
+        if (sessionRes?.session) {
+          const { error: globalErr } = await supabase.auth.signOut({ scope: 'global' });
+          if (globalErr) {
+            const msg = String(globalErr.message || '').toLowerCase();
+            // Ignore common forbidden/403 responses in some environments
+            if (!msg.includes('forbidden') && !msg.includes('403')) {
+              throw globalErr;
+            }
           }
         }
       } catch (err) {
-        console.warn('Global sign-out failed; local sign-out completed:', err);
+        console.warn('Global sign-out attempt returned:', err);
+      }
+
+      // 2) Always try local sign-out to clear this device
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch (err) {
+        console.warn('Local sign-out returned:', err);
+      }
+
+      // 3) Belt-and-suspenders: manually clear Supabase auth keys from localStorage
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          const keys = Object.keys(window.localStorage);
+          for (const k of keys) {
+            if (k.startsWith('sb-') || k.includes('supabase.auth.token')) {
+              window.localStorage.removeItem(k);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Manual localStorage cleanup failed:', err);
       }
     },
     onSuccess: () => {
@@ -129,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       queryClient.clear(); // Clear all data
     },
     onError: (error) => {
-      // Even if we land here unexpectedly, the local session is cleared above.
+      // Even if we land here unexpectedly, the local session was cleared above.
       toast.error('Erreur de déconnexion (session locale nettoyée)');
       console.error('Logout error details:', error);
     },

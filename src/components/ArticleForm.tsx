@@ -112,7 +112,17 @@ export function ArticleForm({ onClose, articleId, defaultValues }: ArticleFormPr
         identifier: null, // Passer null pour déclencher le trigger
       };
       
-      const { error } = await supabase.from('articles').insert(articleData as any);
+      // Append agency_id based on current user's profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Utilisateur non connecté');
+      const { data: profile, error: profileErr } = await supabase
+        .from('profiles')
+        .select('agency_id')
+        .eq('id', user.id)
+        .single();
+      if (profileErr) throw profileErr;
+
+      const { error } = await supabase.from('articles').insert({ ...articleData, agency_id: profile?.agency_id } as any);
       if (error) {
         console.error('Erreur Supabase insert:', error);
         throw error;

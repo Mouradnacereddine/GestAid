@@ -27,7 +27,16 @@ export function useDonorMutation(onClose: () => void) {
         type: data.type,
       };
       
-      const { error } = await supabase.from('donors').insert([donorData]);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Utilisateur non connecté');
+      const { data: profile, error: profErr } = await supabase
+        .from('profiles')
+        .select('agency_id')
+        .eq('id', user.id)
+        .single();
+      if (profErr) throw profErr;
+
+      const { error } = await supabase.from('donors').insert([{ ...donorData, agency_id: profile?.agency_id }]);
       if (error) {
         console.error('Erreur Supabase insert (donateur):', error);
         console.error('Détails de l\'erreur:', {

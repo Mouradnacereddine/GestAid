@@ -26,9 +26,17 @@ export function useLoanMutation(onClose: () => void) {
 
       console.log('Création du prêt avec les données:', loanData);
 
+      // attach agency_id to loan from current profile
+      const { data: profile, error: profErr } = await supabase
+        .from('profiles')
+        .select('agency_id')
+        .eq('id', user.id)
+        .single();
+      if (profErr) throw profErr;
+
       const { data: loan, error: loanError } = await supabase
         .from('loans')
-        .insert(loanData)
+        .insert({ ...loanData, agency_id: profile?.agency_id })
         .select()
         .single();
 

@@ -69,6 +69,15 @@ export function FinancialTransactionForm({ onClose }: FinancialTransactionFormPr
         if (donationError) throw donationError;
         transactionData.related_entity_id = donation.id;
         transactionData.related_entity_type = 'donation';
+
+        // Also ensure the created donation carries the same agency_id as the transaction
+        if (profile?.agency_id) {
+          const { error: updDonErr } = await supabase
+            .from('donations')
+            .update({ agency_id: profile.agency_id })
+            .eq('id', donation.id);
+          if (updDonErr) throw updDonErr;
+        }
       }
 
       const { error } = await supabase.from('financial_transactions').insert(transactionData);

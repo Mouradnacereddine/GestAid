@@ -42,6 +42,20 @@ serve(async (req) => {
     if (!user) throw new Error("User not found. Could not verify the identity of the requester.")
     const superAdminId = user.id
 
+    // Enforce only superadmin can approve admin requests
+    const { data: callerProfile, error: callerErr } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', superAdminId)
+      .single();
+    if (callerErr) throw callerErr;
+    if (!callerProfile || callerProfile.role !== 'superadmin') {
+      return new Response(JSON.stringify({ error: 'Only superadmin can approve admin requests.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      });
+    }
+
     // Get request_id from the request body
     const { request_id } = await req.json()
     if (!request_id) {

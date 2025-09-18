@@ -24,7 +24,17 @@ export function useBeneficiaryMutation(onClose: () => void) {
         consent_date: data.consent_given ? new Date().toISOString() : null,
       };
       
-      const { error } = await supabase.from('beneficiaries').insert([beneficiaryData]);
+      // Attach agency_id to beneficiaries
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Utilisateur non connecté');
+      const { data: profile, error: profErr } = await supabase
+        .from('profiles')
+        .select('agency_id')
+        .eq('id', user.id)
+        .single();
+      if (profErr) throw profErr;
+
+      const { error } = await supabase.from('beneficiaries').insert([{ ...beneficiaryData, agency_id: profile?.agency_id }]);
       if (error) {
         console.error('Erreur Supabase insert (bénéficiaire):', error);
         console.error('Détails de l\'erreur:', {

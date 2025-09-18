@@ -83,8 +83,12 @@ serve(async (req) => {
 
     if (adminProfileError) throw adminProfileError;
     if (!adminProfile) throw new Error('Admin profile not trouvé.');
-    if (adminProfile.role !== 'admin') throw new Error('Seul un admin peut approuver les demandes.');
-    if (agency_id !== adminProfile.agency_id) {
+
+    // Autoriser admin et superadmin. Le contrôle d'agence ne s'applique qu'aux admins.
+    if (!['admin', 'superadmin'].includes(adminProfile.role)) {
+      throw new Error('Seul un admin ou un superadmin peut approuver les demandes.');
+    }
+    if (adminProfile.role === 'admin' && agency_id !== adminProfile.agency_id) {
       throw new Error('Vous ne pouvez approuver que les demandes de votre agence.');
     }
 

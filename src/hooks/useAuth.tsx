@@ -107,8 +107,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOutMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // Always clear local session first so the user is logged out from the app
+      await supabase.auth.signOut({ scope: 'local' });
+
+      // Best-effort global revoke. Some deployments may return 403; ignore it.
+      try {
+        const { error } = await supabase.auth.signOut({ scope: 'global' });
+        if (error) {
+          const msg = String(error.message || '').toLowerCase();
+          if (!msg.includes('forbidden') && !msg.includes('403')) {
+            throw error;
+          }
+        }
+      } catch (err) {
+        console.warn('Global sign-out failed; local sign-out completed:', err);
+      }
     },
     onSuccess: () => {
       toast.success('Déconnexion réussie');
@@ -116,7 +129,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       queryClient.clear(); // Clear all data
     },
     onError: (error) => {
-      toast.error('Erreur de déconnexion', { description: error.message });
+      // Even if we land here unexpectedly, the local session is cleared above.
+      toast.error('Erreur de déconnexion (session locale nettoyée)');
+      console.error('Logout error details:', error);
     },
   });
 
